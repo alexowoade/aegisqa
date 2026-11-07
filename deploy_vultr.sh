@@ -4,7 +4,7 @@
 # Docker is only used for the sandbox image.
 set -euo pipefail
 apt-get update -y
-apt-get install -y docker.io docker-compose python3-fastapi python3-uvicorn python3-pydantic
+apt-get install -y docker.io python3-fastapi python3-uvicorn python3-pydantic
 systemctl enable --now docker
 docker build -t aegisqa-sandbox:latest -f sandbox/Dockerfile.sandbox sandbox/
 # Set the key in this terminal first, then export it:

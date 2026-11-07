@@ -52,7 +52,7 @@ Health: http://64.177.42.65:8000/api/health
 On the VM, in this folder:
 
 ```
-apt-get install -y docker.io docker-compose python3-fastapi python3-uvicorn python3-pydantic
+apt-get install -y docker.io python3-fastapi python3-uvicorn python3-pydantic
 docker build -t aegisqa-sandbox:latest -f sandbox/Dockerfile.sandbox sandbox/
 ```
 

