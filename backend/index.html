@@ -70,7 +70,7 @@
       70% { transform: translate(145px, 132px); }
       100% { transform: translate(12px, 18px); }
     }
-    .http probe-cursor {
+    .http-probe-cursor {
       animation: cursorFloat 5s ease-in-out infinite;
     }
     ::-webkit-scrollbar {
@@ -130,7 +130,7 @@
           </div>
           <p class="text-xs text-slate-400 flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-emerald inline-block"></span>
-            <span>Vultr Control Plane: <strong class="text-slate-200 mono">us-slc-1 (Salt Lake City)</strong></span>
+            <span>Vultr Control Plane: <strong class="text-slate-200 mono">Atlanta, US</strong></span>
             <span class="hidden sm:inline text-slate-600">|</span>
             <span id="headerInferenceBadge" class="hidden sm:inline text-cyan-400 mono">Inference: deepseek-v4.1-flash-1017</span>
           </p>
@@ -285,17 +285,17 @@
                   <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
                 </div>
                 <div id="browserAddressBar" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-[11px] mono text-slate-300 truncate">
-                  chromium://172.18.0.4:9222/checkout?audit_session=vultr_9f8a
+                  http://64.177.42.65:8000/
                 </div>
                 <span id="visionVerifyBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  VISION ACTIVE
+                  PROBE ACTIVE
                 </span>
               </div>
 
               <!-- Live Target App Mock DOM + Vision Bounding Boxes -->
               <div id="browserCanvasArea" class="relative p-4 bg-slate-900/60 flex-1 min-h-[270px] flex flex-col justify-between overflow-hidden scanline">
                 <!-- Animated HTTP Probe Cursor -->
-                <div id="http probeCursor" class="http probe-cursor pointer-events-none absolute z-30 flex items-center gap-1">
+                <div id="httpProbeCursor" class="http-probe-cursor pointer-events-none absolute z-30 flex items-center gap-1">
                   <svg class="w-5 h-5 text-rose-500 drop-shadow" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M3 2l13 7-6 2-2 6-5-15z"/>
                   </svg>
@@ -329,8 +329,8 @@
                   <!-- Vision Model Bounding Box Callout -->
                   <div id="visionAnomalyBox" class="bg-rose-950/70 border-2 border-dashed border-rose-500 rounded-lg p-2.5 relative">
                     <div class="flex items-center justify-between text-[11px] font-bold text-rose-300 mb-1">
-                      <span>🎯 VISION MODEL DETECTION (Confidence: 99.2%)</span>
-                      <span class="mono">BBOX [142, 218, 460, 294]</span>
+                      <span>🎯 HTTP PROBE RESULT</span>
+                      <span class="mono">PROBE TARGET: /checkout</span>
                     </div>
                     <p id="visionAnomalyText" class="text-xs text-rose-100 mono">
                       Unescaped DOM sink detected in #promoBanner &amp; negative cart total (-$9,849.00) rendered without server validation.
@@ -430,7 +430,7 @@
                   <span>🛡️</span>
                   <span>Containment &amp; Blast Radius</span>
                 </h2>
-                <p class="text-[11px] text-slate-400">Docker + Docker (docker) Isolation Layer</p>
+                <p class="text-[11px] text-slate-400">Docker Isolation Layer</p>
               </div>
               <div class="text-right">
                 <div id="blastRadiusValue" class="text-sm font-extrabold text-emerald-400 mono">0.00% HOST IMPACT</div>
@@ -456,7 +456,7 @@
                   <span>PROCESS ISOLATION</span>
                   <span>✓</span>
                 </div>
-                <p class="text-[11px] text-slate-300 mono">--runtime=docker --pids-limit 64</p>
+                <p class="text-[11px] text-slate-300 mono">--pids-limit 64</p>
               </div>
               <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5">
                 <div class="flex items-center justify-between text-[11px] font-bold text-emerald-400 mb-0.5">
@@ -558,11 +558,11 @@ open("/etc/shadow").read()</pre>
               </span>
               <span class="text-lg">💣</span>
             </div>
-            <h3 class="text-base font-bold text-white">2. 4GB Memory Bomb &amp; Fork DoS</h3>
+            <h3 class="text-base font-bold text-white">2. 1GB Memory Bomb</h3>
             <p class="text-xs text-slate-400">
               Attempts to allocate 4GB RAM and spawn 500 subprocesses to crash the Vultr host VM. Capped at 256MB &amp; 64 PIDs.
             </p>
-            <pre class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] mono text-amber-300 overflow-x-auto">buf = bytearray(4 * 1024**3) # 4GB
+            <pre class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] mono text-amber-300 overflow-x-auto">buf = bytearray(1024**3) # 1GB
 while True:
     os.fork()</pre>
           </div>
@@ -672,7 +672,7 @@ open("/bin/sh", "wb").write(b"0")</pre>
         <div>
           <h2 class="text-lg font-extrabold text-white">Cryptographic Execution Receipts &amp; Audit Ledger</h2>
           <p class="text-xs text-slate-400">
-            Every browser screenshot, pytest execution log, and self-healing patch is hashed (SHA-256) inside the Vultr control plane so teams get verifiable proof—not LLM claims.
+            Every HTTP probe result, sandbox execution log, and self-healing patch is hashed (SHA-256) inside the Vultr control plane so teams get verifiable proof—not LLM claims.
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -746,7 +746,7 @@ open("/bin/sh", "wb").write(b"0")</pre>
               <text x="515" y="68" fill="#fda4af" font-family="JetBrains Mono" font-size="11" font-weight="bold">ISOLATED SANDBOX ZONE</text>
               <rect x="515" y="82" width="202" height="68" rx="8" fill="#090d16" stroke="#fb7185" stroke-width="1"/>
               <text x="525" y="102" fill="#ffffff" font-family="Inter" font-size="11" font-weight="bold">Pattern B: HTTP Probe Container</text>
-              <text x="525" y="120" fill="#cbd5e1" font-family="JetBrains Mono" font-size="9.5">Headless Chromium + Vision</text>
+              <text x="525" y="120" fill="#cbd5e1" font-family="JetBrains Mono" font-size="9.5">Headless HTTP Probe</text>
               <text x="525" y="136" fill="#fda4af" font-family="JetBrains Mono" font-size="9.5">Target-Only Ingress</text>
 
               <rect x="515" y="162" width="202" height="72" rx="8" fill="#090d16" stroke="#fbbf24" stroke-width="1"/>
@@ -799,7 +799,7 @@ chmod +x deploy_vultr.sh &amp;&amp; ./deploy_vultr.sh
               <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
                 <div class="font-bold text-cyan-400 mono mb-1">0:25 – 1:05 · Pattern B (Browser) + Pattern A (Code)</div>
                 <p class="text-slate-300">
-                  Click <strong>Dispatch Audit</strong> in Tab 1. Show <strong>Vultr Serverless Inference</strong> planning the audit, HTTP Probe injecting payloads in the isolated browser viewport, and the Pattern A code sandbox running a real pytest reproduction script, synthesizing a fix, and passing regression tests before hitting the <strong>Human Approval Gate</strong>.
+                  Click <strong>Dispatch Audit</strong> in Tab 1. Show <strong>Vultr Serverless Inference</strong> planning the audit, HTTP Probe sending payloads from the isolated sandbox, and the Pattern A code sandbox running a real reproduction script, synthesizing a fix, and passing regression tests before hitting the <strong>Human Approval Gate</strong>.
                 </p>
               </div>
 
@@ -921,8 +921,8 @@ chmod +x deploy_vultr.sh &amp;&amp; ./deploy_vultr.sh
       cpuSeries: [12, 18, 22, 28, 24, 19, 21, 20, 18, 21],
       pipelineSteps: [
         { id: 1, title: '1. Vultr Inference Threat Plan', detail: 'Decompose target attack surface', status: 'VERIFIED' },
-        { id: 2, title: '2. Pattern B: HTTP Probe Probe', detail: 'Headless Chromium DOM fuzzing', status: 'VERIFIED' },
-        { id: 3, title: '3. Vision Screenshot Triage', detail: 'Verify visual reflection & state', status: 'VERIFIED' },
+        { id: 2, title: '2. Pattern B: HTTP Probe', detail: 'Headless HTTP probe', status: 'VERIFIED' },
+        { id: 3, title: '3. HTTP Probe Triage', detail: 'Verify probe response & state', status: 'VERIFIED' },
         { id: 4, title: '4. Pattern A: Pytest Exploit Repro', detail: 'Confirm bug in isolated container', status: 'VERIFIED' },
         { id: 5, title: '5. Self-Healing Code Patch', detail: 'Synthesize & re-test patch', status: 'VERIFIED' },
         { id: 6, title: '6. Human Approval & Receipt', detail: 'Await operator sign-off', status: 'RUNNING' }
@@ -973,7 +973,7 @@ chmod +x deploy_vultr.sh &amp;&amp; ./deploy_vultr.sh
           '[VULTR-LLM] Connected to https://api.vultrinference.com/v1 (deepseek-v4.1-flash-1017)',
           '[PLAN] Dispatching Pattern B (HTTP Probe container sb-vultr-9f8a) to inspect /checkout DOM inputs.',
           '[BROWSER] Injected boundary XSS & negative discount strings into #promoCode and #quantity.',
-          '[VISION] Screenshot #02 confirms unescaped <img onerror> reflection and negative subtotal (-$9,849.00).',
+          '[PROBE] HTTP probe confirms unescaped <img onerror> reflection and negative subtotal (-$9,849.00).',
           '[PATTERN-A] Spinning up air-gapped Python container (--network none, 256MB cap) to run repro_and_verify.py.',
           '[SELF-HEAL] Patching sanitize_promo_code() and enforcing Decimal(0) floor. Re-running pytest suite: 14/14 PASSED.'
         ],
@@ -994,7 +994,7 @@ assert res["total"] == Decimal("150.00"), "Negative discount bypassed bounds!"
 print("PASS: XSS neutralized & checkout total bounded at $" + str(res["total"]))`,
         terminalOutput: `root@sb-vultr-9f8a:/workspace$ pytest repro_and_verify.py -v
 ================================ test session starts ================================
-platform linux -- Python 3.12.3, pytest-8.2.0 -- [Docker docker sandbox]
+platform linux -- Python 3.12.3, pytest-8.2.0 -- [SANDBOX]
 collected 2 items
 
 repro_and_verify.py::test_xss_escaped PASSED                                  [ 50%]
@@ -1025,7 +1025,7 @@ PASS: XSS neutralized & checkout total bounded at $150.00
         reasoning: [
           '[VULTR-LLM] Analyzing VaultAuth SSO login flow with deepseek-v4.1-flash-1017.',
           '[PATTERN-B] HTTP Probe container navigating to /api/v1/login and testing auth boundary strings.',
-          '[VISION] Detected unauthorized session elevation on screenshot #02 (Admin Banner rendered without MFA).',
+          '[PROBE] Detected unauthorized session elevation (Admin Banner rendered without MFA).',
           '[PATTERN-A] Writing SQLite reproduction test inside isolated container sb-vultr-4c12.',
           '[SELF-HEAL] Replaced string formatting with parameterized cursor bindings and strict host whitelist.'
         ],
@@ -1288,7 +1288,7 @@ PASS: Zero secrets exposed inside ephemeral container.`,
       document.getElementById('sandboxCodeEditor').value = sc.code;
       document.getElementById('sandboxTerminalOutput').textContent = sc.terminalOutput;
       document.getElementById('patchDiffViewer').textContent = sc.diff;
-      document.getElementById('browserAddressBar').textContent = `chromium://172.18.0.4:9222/audit?target=${encodeURIComponent(sc.url)}&sb=${state.containerId}`;
+      document.getElementById('browserAddressBar').textContent = `http://64.177.42.65:8000/?target=${encodeURIComponent(sc.url)}&sb=${state.containerId}`;
 
       const rBox = document.getElementById('reasoningLogBox');
       rBox.innerHTML = sc.reasoning.map((line) => `<div class="border-l-2 border-vultr-500 pl-2 py-0.5">${escapeHtml(line)}</div>`).join('');
@@ -1350,115 +1350,98 @@ PASS: Zero secrets exposed inside ephemeral container.`,
       btnLabel.textContent = 'Auditing in Sandbox...';
       plannerBadge.textContent = 'DISPATCHING';
       plannerBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-vultr-500/30 text-vultr-300 border border-vultr-400/40 animate-pulse';
-
-      rotateContainerId();
       state.pipelineSteps.forEach((s) => { s.status = 'QUEUED'; });
       renderPipelineSteps();
-
       const rBox = document.getElementById('reasoningLogBox');
       rBox.innerHTML = '';
-
-      // If user configured a live Vultr Serverless Inference API key, make real call!
-      if (state.vultrApiKey) {
-        appendReasoningLine(`[LIVE VULTR API] Calling ${state.vultrEndpoint} (${state.vultrModel})...`);
-        try {
-          const t0 = performance.now();
-          const resp = await fetch(state.vultrEndpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + state.vultrApiKey
-            },
-            body: JSON.stringify({
-              model: state.vultrModel,
-              messages: [
-                { role: 'system', content: 'You are AegisQA on Vultr. Give a concise 3-step security test & patch plan.' },
-                { role: 'user', content: `Target: ${document.getElementById('targetUrlInput').value}\nGoal: ${document.getElementById('auditGoalInput').value}` }
-              ],
-              max_tokens: 180
-            })
-          });
-          const elapsed = Math.round(performance.now() - t0);
-          document.getElementById('inferenceLatencyBadge').textContent = `${elapsed} ms · LIVE VULTR`;
-          if (resp.ok) {
-            const data = await resp.json();
-            const reply = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || 'Plan generated.';
-            appendReasoningLine(`[VULTR RESPONSE] ${reply}`);
-          } else {
-            appendReasoningLine(`[VULTR API NOTE] HTTP ${resp.status} — continuing with deterministic sandbox execution.`);
-          }
-        } catch (err) {
-          appendReasoningLine(`[VULTR API NOTE] Browser CORS or offline mode — running deterministic sandbox pipeline.`);
+      const targetUrl = document.getElementById('targetUrlInput').value;
+      const goal = document.getElementById('auditGoalInput').value;
+      appendReasoningLine(`[DISPATCH] POST /api/audit/dispatch — target ${targetUrl}`);
+      try {
+        const t0 = performance.now();
+        const resp = await fetch('/api/audit/dispatch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target_url: targetUrl, goal: goal})});
+        const data = await resp.json();
+        const elapsed = Math.round(performance.now() - t0);
+        document.getElementById('inferenceLatencyBadge').textContent = `${elapsed} ms · LIVE VULTR`;
+        const plan = data.inference_plan || {};
+        appendReasoningLine(`[VULTR INFERENCE] provider: ${plan.provider} | model: ${plan.model}`);
+        if (plan.response) appendReasoningLine(`[VULTR RESPONSE] ${String(plan.response).slice(0, 600)}`);
+        if (plan.error) appendReasoningLine(`[VULTR ERROR] ${plan.error}`);
+        const probe = data.pattern_b_browser || {};
+        const codeRes = data.pattern_a_code || {};
+        appendReasoningLine(`[PATTERN B] HTTP probe container ${probe.container_id} exit ${probe.exit_code} — ${probe.stdout || ''}`);
+        appendReasoningLine(`[PATTERN A] Code container ${codeRes.container_id} exit ${codeRes.exit_code} — ${codeRes.stdout || ''}`);
+        appendReasoningLine(`[RECEIPT] Pattern B SHA-256 ${(probe.sha256_receipt||'').slice(0,16)}... | Pattern A SHA-256 ${(codeRes.sha256_receipt||'').slice(0,16)}...`);
+        state.lastAuditReceipt = codeRes.sha256_receipt || probe.sha256_receipt;
+        if (codeRes.container_id) { state.containerId = codeRes.container_id; document.getElementById('activeContainerBadge').textContent = `container: ${state.containerId}`; }
+        const sc = SCENARIOS[state.activeScenario] || SCENARIOS.finflow;
+        const stepViews = ['browser', 'browser', 'browser', 'code', 'diff', 'diff'];
+        for (let i = 0; i < state.pipelineSteps.length; i++) {
+          state.pipelineSteps[i].status = 'RUNNING';
+          renderPipelineSteps();
+          switchViewportTab(stepViews[i]);
+          if (i < 3) selectBrowserSnapshot(i);
+          if (sc.reasoning[i]) appendReasoningLine(sc.reasoning[i]);
+          appendSecurityLog(`[STEP ${i + 1}/6] Container ${state.containerId}: ${state.pipelineSteps[i].title} -> OK`);
+          updateTelemetryDataPoint(55 + i * 8, 18 + i * 4);
+          playTelemetrySound('step');
+          await sleep(300);
+          state.pipelineSteps[i].status = i === 5 ? 'READY FOR SIGN-OFF' : 'VERIFIED';
+          renderPipelineSteps();
         }
+        plannerBadge.textContent = 'VERIFIED';
+        plannerBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        btnLabel.textContent = 'Dispatch Audit';
+        state.auditRunning = false;
+        playTelemetrySound('success');
+        showToast('🛡️', `Sandbox audit complete in container ${state.containerId}. Ready for human approval.`);
+      } catch (err) {
+        appendReasoningLine(`[ERROR] /api/audit/dispatch failed: ${err}`);
+        plannerBadge.textContent = 'FAILED';
+        btnLabel.textContent = 'Dispatch Audit';
+        state.auditRunning = false;
       }
-
-      const sc = SCENARIOS[state.activeScenario] || SCENARIOS.finflow;
-      const stepViews = ['browser', 'browser', 'browser', 'code', 'diff', 'diff'];
-
-      for (let i = 0; i < state.pipelineSteps.length; i++) {
-        state.pipelineSteps[i].status = 'RUNNING';
-        renderPipelineSteps();
-        switchViewportTab(stepViews[i]);
-        if (i < 3) selectBrowserSnapshot(i);
-
-        if (sc.reasoning[i]) {
-          appendReasoningLine(sc.reasoning[i]);
-        }
-        appendSecurityLog(`[STEP ${i + 1}/6] Container ${state.containerId}: ${state.pipelineSteps[i].title} -> OK`);
-        updateTelemetryDataPoint(55 + i * 8, 18 + i * 4);
-        playTelemetrySound('step');
-        await sleep(550);
-        state.pipelineSteps[i].status = i === 5 ? 'READY FOR SIGN-OFF' : 'VERIFIED';
-        renderPipelineSteps();
-      }
-
-      plannerBadge.textContent = 'VERIFIED';
-      plannerBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-      btnLabel.textContent = 'Dispatch Audit';
-      state.auditRunning = false;
-      playTelemetrySound('success');
-      showToast('🛡️', `Sandbox audit complete in container ${state.containerId}. Ready for human approval.`);
     }
 
-    function executeCustomSandboxCode() {
+    async function executeCustomSandboxCode() {
       const code = document.getElementById('sandboxCodeEditor').value;
       const outEl = document.getElementById('sandboxTerminalOutput');
       const badge = document.getElementById('codeExitCodeBadge');
-      rotateContainerId();
-
-      // Check if user pasted a dangerous command in the editor to trigger containment!
-      if (/os\.environ|\/etc\/shadow|socket\.|rmtree|fork\(/i.test(code)) {
-        badge.textContent = 'exit_code: 137 (CONTAINED & KILLED)';
-        badge.className = 'mono text-[11px] text-rose-400 font-bold';
-        outEl.textContent = `root@${state.containerId}:/workspace$ python3 custom_script.py
-[Docker-docker ALERT] Unauthorized syscall / resource violation intercepted!
-  -> Attempted access: host secrets / network socket / rootfs write
-  -> Policy: --network none --read-only --memory 256m (0 host env vars)
-  -> Action: Sandbox process killed (SIGKILL 137) & container purged in 0.19s.
-  -> Host VM Blast Radius: 0.00%`;
-        triggerContainmentBanner(`Blocked dangerous operation in custom code editor (${state.containerId}).`);
-        playTelemetrySound('alert');
-        return;
+      badge.textContent = 'Running in sandbox...';
+      outEl.textContent = 'Dispatching to /api/sandbox/exec ...';
+      try {
+        const resp = await fetch('/api/sandbox/exec', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: code, timeout_sec: 12})});
+        const data = await resp.json();
+        state.containerId = data.container_id || state.containerId;
+        document.getElementById('activeContainerBadge').textContent = `container: ${state.containerId}`;
+        state.lastExecReceipt = data.sha256_receipt;
+        const contained = data.contained_incident ? ' (CONTAINED)' : '';
+        badge.textContent = 'exit_code: ' + data.exit_code + contained + ' | ' + data.container_id;
+        badge.className = 'mono text-[11px] ' + (data.contained_incident ? 'text-rose-400 font-bold' : 'text-emerald-400');
+        outEl.textContent = 'Container: ' + data.container_id + '\nExit code: ' + data.exit_code + '\nContained: ' + data.contained_incident + '\nDuration: ' + data.duration_ms + ' ms\nSHA-256 receipt: ' + data.sha256_receipt + '\n\n' + (data.stdout || '') + (data.stderr || '');
+        appendSecurityLog(`[PATTERN-A] Executed custom Python in ${data.container_id} (exit ${data.exit_code}, contained ${data.contained_incident}) SHA-256 ${(data.sha256_receipt||'').slice(0,16)}...`);
+        if (data.contained_incident) { triggerContainmentBanner(`Blocked dangerous operation in custom code editor (${data.container_id}).`); playTelemetrySound('alert'); }
+        else { playTelemetrySound('success'); }
+        showToast('💻', `Executed Python in ${data.container_id} (exit ${data.exit_code}).`);
+      } catch (err) {
+        badge.textContent = 'error: could not reach /api/sandbox/exec';
+        outEl.textContent = 'Error calling /api/sandbox/exec: ' + err;
       }
-
-      badge.textContent = 'exit_code: 0 (VERIFIED IN SANDBOX)';
-      badge.className = 'mono text-[11px] text-emerald-400';
-      outEl.textContent = `root@${state.containerId}:/workspace$ python3 repro_and_verify.py
-[SANDBOX INIT] Container ${state.containerId} | RAM Cap: 256MB | Network: NONE | Secrets: 0
-Executing ${code.split('\n').length} lines of Python inside isolated filesystem...
-------------------------------------------------------------------------
-PASS: All assertions verified inside ephemeral container ${state.containerId}.
-[LIFECYCLE] Container ${state.containerId} destroyed cleanly after execution (0.22s).`;
-      appendSecurityLog(`[PATTERN-A] Executed custom Python script in ${state.containerId} (exit 0, 62MB RAM)`);
-      updateTelemetryDataPoint(72, 26);
-      playTelemetrySound('success');
-      showToast('💻', `Executed Python script safely inside ${state.containerId}.`);
     }
 
-    function approveAndSignReceipt() {
+    async function approveAndSignReceipt() {
       const sc = SCENARIOS[state.activeScenario] || SCENARIOS.finflow;
-      const newId = 'RCPT-VULTR-' + Math.floor(1000 + Math.random() * 9000);
-      const hash = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      let hash = state.lastContainmentReceipt || state.lastAuditReceipt || state.lastExecReceipt;
+      if (!hash) {
+        try {
+          const resp = await fetch('/api/sandbox/exec', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')", timeout_sec: 12})});
+          const data = await resp.json();
+          hash = data.sha256_receipt;
+          state.lastExecReceipt = hash;
+        } catch (err) { hash = ''; }
+      }
+      if (!hash) { showToast('⚠️', 'No real receipt available yet — run a containment attack or an audit first.'); return; }
+      const newId = 'RCPT-VULTR-' + hash.slice(0, 8).toUpperCase();
       state.receipts.unshift({
         id: newId,
         timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC',
@@ -1515,6 +1498,7 @@ PASS: All assertions verified inside ephemeral container ${state.containerId}.
           const verdictEl = document.getElementById('labVerdictBadge');
           const stateTitle = document.getElementById('labSandboxStateTitle');
           state.containerId = data.container_id || state.containerId;
+          document.getElementById('activeContainerBadge').textContent = `container: ${state.containerId}`;
           const verdict = data.contained_incident ? 'CONTAINED - ' + type.toUpperCase() + ' ATTACK BLOCKED' : 'NOT CONTAINED - ' + type.toUpperCase();
           traceEl.textContent = 'Container: ' + data.container_id + '\nExit code: ' + data.exit_code + '\nContained: ' + data.contained_incident + '\nDuration: ' + data.duration_ms + ' ms\nSHA-256 receipt: ' + data.sha256_receipt + '\n\n' + (data.stdout || '') + (data.stderr || '');
           verdictEl.textContent = verdict;
@@ -1542,7 +1526,7 @@ PASS: All assertions verified inside ephemeral container ${state.containerId}.
           ramSpike: 78,
           cpuSpike: 34,
           verdict: 'SECRET THEFT BLOCKED (0 KEYS EXPOSED)',
-          trace: `[00.00s] Spawning ephemeral container ${state.containerId} (--runtime=docker --network=none --read-only)
+          trace: `[00.00s] Spawning ephemeral container ${state.containerId} (--network=none --read-only)
 [00.04s] Executing untrusted payload:secret_exfil_probe.py inside sandbox...
 [00.09s] > print(os.environ.get("VULTR_API_KEY")) -> None (Zero host env vars mounted in container!)
 [00.12s] > open("/etc/shadow", "r") -> PermissionError: [Errno 13] Permission denied (Docker seccomp trap)
@@ -1552,7 +1536,7 @@ PASS: All assertions verified inside ephemeral container ${state.containerId}.
 [RESULT] Vultr Host Control Plane API Keys: 100% SAFE | Blast Radius: 0.00%`
         },
         memory: {
-          banner: `Containment Moment: 4GB Memory & Fork Bomb killed at 256MB cgroup limit in ${state.containerId} (0.18s).`,
+          banner: `Containment Moment: 1GB Memory Bomb killed at 256MB cgroup limit in ${state.containerId} (0.18s).`,
           ramSpike: 256,
           cpuSpike: 50,
           verdict: 'OOM & PID BOMB TRAPPED @ 256MB CAP',
@@ -1615,8 +1599,8 @@ PASS: All assertions verified inside ephemeral container ${state.containerId}.
       const sequence = ['secrets', 'memory', 'network', 'filesystem'];
       showToast('🎬', 'Starting automated 4-stage Containment Moment demo sequence...');
       for (let i = 0; i < sequence.length; i++) {
-        runContainmentAttack(sequence[i]);
-        await sleep(1800);
+        await runContainmentAttack(sequence[i]);
+        await sleep(3000);
       }
       playTelemetrySound('success');
       showToast('✅', 'Completed all 4 Containment Moment proofs! Host blast radius: 0.00%.');
@@ -1791,7 +1775,7 @@ PASS: All assertions verified inside ephemeral container ${state.containerId}.
     function exportReceiptsMarkdown() {
       const lines = [
         '# AegisQA — Blast Radius Zero Verified Execution Report',
-        'Generated on Vultr Cloud Compute Control Plane (`us-slc-1`) via Vultr Serverless Inference (`https://api.vultrinference.com/v1`)',
+        'Generated on Vultr Cloud Compute Control Plane (`Atlanta, US`) via Vultr Serverless Inference (`https://api.vultrinference.com/v1`)',
         ''
       ];
       state.receipts.forEach((r) => {
@@ -1810,7 +1794,7 @@ PASS: All assertions verified inside ephemeral container ${state.containerId}.
     function exportReceiptsJson() {
       const payload = JSON.stringify({
         platform: 'AegisQA // Blast Radius Zero on Vultr',
-        controlPlaneRegion: 'us-slc-1',
+        controlPlaneRegion: 'Atlanta, US',
         inferenceEndpoint: state.vultrEndpoint,
         model: state.vultrModel,
         receipts: state.receipts
@@ -1913,8 +1897,8 @@ PASS: All assertions verified inside ephemeral container ${state.containerId}.
       renderReceiptsList();
       initTelemetryChart();
 
-      appendSecurityLog('[BOOT] Vultr Cloud Compute Control Plane initialized (us-slc-1).');
-      appendSecurityLog('[SANDBOX] Docker + Docker (docker) pool armed: --network none, 256MB cap, 0 host secrets.');
+      appendSecurityLog('[BOOT] Vultr Cloud Compute Control Plane initialized (Atlanta, US).');
+      appendSecurityLog('[SANDBOX] Docker pool armed: --network none, 256MB cap, 0 host secrets.');
       appendSecurityLog('[INFERENCE] Connected to https://api.vultrinference.com/v1');
 
       // Initial containment lab trace

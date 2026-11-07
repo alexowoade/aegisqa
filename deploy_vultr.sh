@@ -1,24 +1,21 @@
 #!/usr/bin/env bash
+# AegisQA deploy — reflects what was actually done on the Vultr VM.
+# Debian 13, host route (not docker-compose): FastAPI runs on the host,
+# Docker is only used for the sandbox image.
 set -euo pipefail
-
-echo "=================================================================="
-echo "  AegisQA — Blast Radius Zero Provisioner for Vultr Cloud Compute "
-echo "=================================================================="
-
-if ! command -v docker &> /dev/null; then
-  echo "[1/3] Installing Docker Engine on Vultr VM..."
-  apt-get update -y && apt-get install -y docker.io docker-compose-v2
-  systemctl enable --now docker
-fi
-
-echo "[2/3] Building unprivileged isolated sandbox image (aegisqa-sandbox:latest)..."
+apt-get update -y
+apt-get install -y docker.io docker-compose python3-fastapi python3-uvicorn python3-pydantic
+systemctl enable --now docker
 docker build -t aegisqa-sandbox:latest -f sandbox/Dockerfile.sandbox sandbox/
-
-echo "[3/3] Starting AegisQA Control Plane on port 8000..."
-docker compose up -d
-
-PUBLIC_IP=$(hostname -I | awk '{print $1}')
-echo "=================================================================="
-echo "✅ AegisQA is live at: http://${PUBLIC_IP}:8000"
-echo "🛡️ Containment guarantees active: --network none, 256MB RAM cap, 0 secrets"
-echo "=================================================================="
+# Set the key in this terminal first, then export it:
+#   read -s VULTR_INFERENCE_API_KEY
+#   export VULTR_INFERENCE_API_KEY
+# Then start the control plane from backend/:
+#   cd backend
+#   nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 > /root/uvicorn.log 2>&1 &
+#   curl -s http://localhost:8000/api/health
+# Open port 8000 if the public URL is unreachable:
+#   ufw allow 8000/tcp
+# Public URL is http://<your-public-IPv4>:8000/ — do NOT use hostname -I,
+# that prints the internal address.
+echo "Deploy steps done. Start uvicorn from backend/ as shown above."

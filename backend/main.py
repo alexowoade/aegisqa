@@ -2,7 +2,7 @@
 
 Integrates:
 - Vultr Serverless Inference (https://api.vultrinference.com/v1/chat/completions)
-- Pattern A (Sandboxed Code Execution) & Pattern B (Sandboxed Playwright Browser)
+- Pattern A (Sandboxed Code Execution) & Pattern B (Sandboxed Headless HTTP Probe)
 - Interactive Glass-Box Dashboard served at /
 """
 
@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from sandbox_runner import execute_python_in_sandbox, execute_playwright_probe_in_sandbox
+from sandbox_runner import execute_python_in_sandbox, execute_http_probe_in_sandbox
 from containment_demo import CONTAINMENT_PAYLOADS
 
 app = FastAPI(
@@ -66,7 +66,7 @@ def call_vultr_serverless_inference(prompt: str) -> dict:
             "provider": "vultr-serverless-inference (simulation-fallback)",
             "model": VULTR_INFERENCE_MODEL,
             "plan": [
-                "1. Probe target DOM forms using isolated Playwright container.",
+                "1. Probe target with an isolated headless HTTP probe.",
                 "2. Reproduce boundary vulnerability with pytest in --network none container.",
                 "3. Synthesize context-aware patch and verify 0 regressions."
             ]
@@ -144,7 +144,7 @@ def run_containment_demo(req: ContainmentAttackRequest):
 @app.post("/api/audit/dispatch")
 def dispatch_full_audit(req: AuditRequest):
     plan = call_vultr_serverless_inference(f"Target: {req.target_url}\nGoal: {req.goal}")
-    browser_probe = execute_playwright_probe_in_sandbox(req.target_url)
+    browser_probe = execute_http_probe_in_sandbox(req.target_url)
     code_to_run = req.custom_code or "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')"
     code_verify = execute_python_in_sandbox(code_to_run)
     return {

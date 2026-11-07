@@ -1,7 +1,7 @@
 """AegisQA Ephemeral Sandbox Execution Engine for Vultr Cloud Compute.
 
 Enforces all four Challenge 1 (Blast Radius Zero) containment pillars:
-1. Process isolation: Ephemeral Docker/gVisor container per task, --pids-limit 64, --security-opt no-new-privileges
+1. Process isolation: Ephemeral Docker container per task, --pids-limit 64, --security-opt no-new-privileges
 2. Secret hygiene: Zero host environment variables or API keys passed into container (-e flags omitted)
 3. Resource limits: --memory 256m --memory-swap 256m --cpus 0.5 + strict wall-clock timeout
 4. Lifecycle discipline: --read-only rootfs, noexec /tmp, and unconditional `docker rm -f` teardown
@@ -92,8 +92,8 @@ def execute_python_in_sandbox(code: str, timeout_sec: int = 12) -> Dict[str, Any
     }
 
 
-def execute_playwright_probe_in_sandbox(target_url: str, timeout_sec: int = 20) -> Dict[str, Any]:
-    """Pattern B: Runs Playwright headless browser inside an isolated container."""
+def execute_http_probe_in_sandbox(target_url: str, timeout_sec: int = 20) -> Dict[str, Any]:
+    """Pattern B: headless HTTP probe inside an isolated container. NOT Playwright/Chromium."""
     probe_script = f"""
 import json, urllib.request
 # Safe header & DOM title probe inside isolated container
