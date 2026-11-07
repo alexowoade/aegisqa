@@ -56,32 +56,47 @@ class ContainmentAttackRequest(BaseModel):
     attack_type: Literal["secrets", "memory", "network", "filesystem"]
 
 
-def call_vultr_serverless_inference(prompt: str) -> dict:
-    """Calls Vultr Serverless Inference from the host control plane.
-    The API key NEVER enters the sandbox container.
-    """
+def call_vultr_serverless_inference(
+    prompt: str,
+    model: str = None,
+    max_tokens: int = 300,
+    timeout: int = 45,
+    enable_thinking: bool = None,
+    system_prompt: str = None
+) -> dict:
+
     api_key = os.environ.get("VULTR_INFERENCE_API_KEY", "")
+    use_model = model or VULTR_INFERENCE_MODEL
+
     if not api_key:
         return {
             "provider": "vultr-serverless-inference (simulation-fallback)",
-            "model": VULTR_INFERENCE_MODEL,
-            "plan": [
-                "1. Probe target with an isolated headless HTTP probe.",
-                "2. Reproduce boundary vulnerability with Python in --network none container.",
-                "3. Synthesize context-aware patch and verify 0 regressions."
-            ]
+            "model": use_model,
+            "error": "Missing VULTR_INFERENCE_API_KEY"
         }
 
+    system_prompt = system_prompt or (
+        "You are AegisQA, an autonomous security and QA planner. "
+        "Follow the user's instructions precisely."
+    )
+
     req_body = json.dumps({
-        "model": VULTR_INFERENCE_MODEL,
+        "model": use_model,
         "messages": [
             {
                 "role": "system",
-                "content": "You are AegisQA, an autonomous security and QA planner running on Vultr. Return concise JSON."
+                "content": system_prompt
             },
-            {"role": "user", "content": prompt}
+            {
+                "role": "user",
+                "content": prompt
+            }
         ],
-        "max_tokens": 300
+        "max_tokens": max_tokens,
+        **(
+            {"enable_thinking": enable_thinking}
+            if enable_thinking is not None else {}
+        )
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -93,20 +108,78 @@ def call_vultr_serverless_inference(prompt: str) -> dict:
         },
         method="POST"
     )
+
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            status = resp.status
+            raw_body = resp.read().decode("utf-8")
+
+        data = json.loads(raw_body)
+
+        choices = data.get("choices", [])
+
+        if not choices:
             return {
-                "provider": "vultr-serverless-inference (live)",
-                "model": VULTR_INFERENCE_MODEL,
-                "response": data["choices"][0]["message"]["content"]
+                "provider": "vultr-serverless-inference",
+                "model": use_model,
+                "status": status,
+                "error": "API returned no choices",
+                "raw_response": raw_body[:4000]
             }
+
+        message = choices[0].get("message", {})
+        content = message.get("content")
+
+        if not content or not str(content).strip():
+            return {
+                "provider": "vultr-serverless-inference",
+                "model": use_model,
+                "status": status,
+                "error": "API returned empty content",
+                "finish_reason": choices[0].get("finish_reason"),
+                "raw_response": raw_body[:4000]
+            }
+
+        return {
+            "provider": "vultr-serverless-inference (live)",
+            "model": use_model,
+            "status": status,
+            "response": content,
+            "finish_reason": choices[0].get("finish_reason")
+        }
+
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+
+        return {
+            "provider": "vultr-serverless-inference",
+            "model": use_model,
+            "status": exc.code,
+            "error": str(exc),
+            "raw_response": error_body[:4000]
+        }
+
     except Exception as exc:
         return {
             "provider": "vultr-serverless-inference",
-            "model": VULTR_INFERENCE_MODEL,
-            "error": str(exc)
+            "model": use_model,
+            "error": str(exc),
+            "error_type": type(exc).__name__
         }
+
+
+GENERATE_SYSTEM_PROMPT = """
+You are an expert Python software engineer.
+Follow the user's instructions precisely.
+When asked to generate Python code, return only executable Python code.
+Do not include Markdown fences or explanatory text.
+"""
+
+PLAN_SYSTEM_PROMPT = """
+You are AegisQA, an autonomous security and QA planner.
+Return valid JSON matching the requested structure.
+Do not include Markdown fences.
+"""
 
 
 @app.get("/")
@@ -143,24 +216,108 @@ def run_containment_demo(req: ContainmentAttackRequest):
 
 @app.post("/api/audit/dispatch")
 def dispatch_full_audit(req: AuditRequest):
-    plan = call_vultr_serverless_inference(f"Target: {req.target_url}\nGoal: {req.goal}")
+    plan = call_vultr_serverless_inference(f"Target: {req.target_url}\nGoal: {req.goal}", system_prompt=PLAN_SYSTEM_PROMPT)
     browser_probe = execute_http_probe_in_sandbox(req.target_url)
-    code_to_run = req.custom_code or "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')"
-    code_verify = execute_python_in_sandbox(code_to_run)
-    # Second inference call: model explains the real container output (Pattern A step 5)
+
+    # Pattern A step 2: model writes the verification code
+    gen = call_vultr_serverless_inference(
+        f"Generate a Python 3.12 verification script to run inside a Docker sandbox that has "
+        f"--network none, 256MB RAM, 0.5 vCPU, zero mounted secrets, read-only rootfs. "
+        f"ONLY the Python standard library is available. DO NOT use requests, bs4, "
+        f"urllib.request to external URLs, or any third-party package. "
+        f"Target: {req.target_url}\nGoal: {req.goal}\n"
+        f"Script must: use only stdlib, assert at least one concrete security property "
+        f"(XSS escaping, SQL parameterization, input bounds, secret absence), print PASS on "
+        f"success, exit 0 on success, non-zero on failure. Return ONLY the Python code, "
+        f"no markdown fences, no explanation.",
+        model="qwen3.8-flash-next",
+        system_prompt=GENERATE_SYSTEM_PROMPT,
+        max_tokens=2000,
+        timeout=45,
+        enable_thinking=False,
+    )
+    if not gen.get("response"):
+        print("GENERATION FAILED")
+        print("Provider:", gen.get("provider"))
+        print("Model:", gen.get("model"))
+        print("Status:", gen.get("status"))
+        print("Error:", gen.get("error"))
+        print("Response:", gen.get("raw_response"))
+    generated_code = (gen.get("response") or "").strip()
+    if generated_code.startswith("```"):
+        generated_code = generated_code.split("```")[1]
+        if generated_code.lower().startswith("python"):
+            generated_code = generated_code[6:]
+        generated_code = generated_code.strip()
+
+    executed_code = generated_code
+    attempts = []
+    source = "generated"
+
+    # Pattern A step 3: run it
+    if generated_code:
+        result = execute_python_in_sandbox(generated_code)
+        attempts.append({"attempt": 1, "source": "generated", "exit_code": result["exit_code"], "contained": result["contained_incident"]})
+    else:
+        result = None
+
+    # Pattern A step 4: retry once with error feedback
+    if (not result or result["exit_code"] != 0) and generated_code:
+        fix = call_vultr_serverless_inference(
+            f"The generated Python script failed inside the sandbox.\n"
+            f"exit_code: {result['exit_code'] if result else 'no-exec'}\n"
+            f"stdout: {(result['stdout'] if result else '')[:400]}\n"
+            f"stderr: {(result['stderr'] if result else 'generation produced empty script')[:600]}\n\n"
+            f"Fix the script. Same rules: only stdlib, no network, no third-party packages. "
+            f"Return ONLY the fixed Python code, no markdown, no explanation.",
+            model="qwen3.8-flash-next",
+            system_prompt=GENERATE_SYSTEM_PROMPT,
+            max_tokens=2000,
+            timeout=45,
+            enable_thinking=False,
+        )
+        fixed_code = (fix.get("response") or "").strip()
+        if fixed_code.startswith("```"):
+            fixed_code = fixed_code.split("```")[1]
+            if fixed_code.lower().startswith("python"):
+                fixed_code = fixed_code[6:]
+            fixed_code = fixed_code.strip()
+        if fixed_code:
+            executed_code = fixed_code
+            result = execute_python_in_sandbox(fixed_code)
+            attempts.append({"attempt": 2, "source": "retry", "exit_code": result["exit_code"], "contained": result["contained_incident"]})
+
+    # Fallback: if generated + retry both failed, run the authored scenario code
+    if (not result or result["exit_code"] != 0) and req.custom_code:
+        executed_code = req.custom_code
+        result = execute_python_in_sandbox(req.custom_code)
+        source = "fallback"
+        attempts.append({"attempt": 3, "source": "fallback", "exit_code": result["exit_code"], "contained": result["contained_incident"]})
+
+    # If we have no result at all, produce one from the authored code
+    if result is None:
+        executed_code = req.custom_code or "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')"
+        result = execute_python_in_sandbox(executed_code)
+        source = "fallback"
+
+    # Pattern A step 5: model explains the real output
     explanation = call_vultr_serverless_inference(
-        f"The Vultr sandbox executed the following Python code and returned:\n"
-        f"exit_code: {code_verify.get('exit_code')}\n"
-        f"contained_incident: {code_verify.get('contained_incident')}\n"
-        f"stdout: {str(code_verify.get('stdout', ''))[:500]}\n"
-        f"stderr: {str(code_verify.get('stderr', ''))[:500]}\n\n"
+        f"The Vultr sandbox executed Python and returned:\n"
+        f"exit_code: {result.get('exit_code')}\n"
+        f"contained_incident: {result.get('contained_incident')}\n"
+        f"stdout: {str(result.get('stdout', ''))[:500]}\n"
+        f"stderr: {str(result.get('stderr', ''))[:500]}\n\n"
         f"In 1-2 sentences, explain what this output proves about the containment guarantees "
         f"(--network none, --memory 256m, --read-only rootfs, 0 mounted secrets). "
         f"Return plain text, not JSON."
     )
+
+    result["executed_code"] = executed_code
+    result["source"] = source
+    result["attempts"] = attempts
     return {
         "inference_plan": plan,
         "pattern_b_browser": browser_probe,
-        "pattern_a_code": code_verify,
+        "pattern_a_code": result,
         "inference_explanation": explanation,
     }

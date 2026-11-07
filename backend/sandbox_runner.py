@@ -93,6 +93,7 @@ def execute_python_in_sandbox(code: str, timeout_sec: int = 12) -> Dict[str, Any
 
     return {
         "container_id": container_id,
+        "executed_code": code,
         "exit_code": exit_code,
         "stdout": stdout,
         "stderr": stderr,
