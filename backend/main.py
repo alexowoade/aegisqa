@@ -47,6 +47,13 @@ class AuditRequest(BaseModel):
     custom_code: Optional[str] = Field(default=None, max_length=20000)
 
 
+class ExplainRequest(BaseModel):
+    exit_code: int
+    stdout: str = ""
+    stderr: str = ""
+    contained_incident: bool = False
+
+
 class SandboxExecRequest(BaseModel):
     code: str = Field(..., max_length=20000)
     timeout_sec: int = Field(default=12, ge=1, le=20)
@@ -214,90 +221,77 @@ def run_containment_demo(req: ContainmentAttackRequest):
     return JSONResponse(result)
 
 
+@app.post("/api/audit/plan")
+def audit_plan(req: AuditRequest):
+    plan = call_vultr_serverless_inference(
+        f"Target: {req.target_url}\nGoal: {req.goal}"
+    )
+    return plan
+
+@app.post("/api/audit/explain")
+def audit_explain(req: ExplainRequest):
+    explanation = call_vultr_serverless_inference(
+        f"The Vultr sandbox executed Python and returned:\n"
+        f"exit_code: {req.exit_code}\n"
+        f"contained_incident: {req.contained_incident}\n"
+        f"stdout: {req.stdout[:500]}\n"
+        f"stderr: {req.stderr[:500]}\n\n"
+        f"In 1-2 sentences, explain what this output proves about the containment guarantees."
+    )
+    return explanation
+
 @app.post("/api/audit/dispatch")
 def dispatch_full_audit(req: AuditRequest):
-    plan = call_vultr_serverless_inference(f"Target: {req.target_url}\nGoal: {req.goal}", system_prompt=PLAN_SYSTEM_PROMPT)
     browser_probe = execute_http_probe_in_sandbox(req.target_url)
 
-    # Pattern A step 2: model writes the verification code
-    gen = call_vultr_serverless_inference(
-        prompt="Write a short Python 3.12 unit test using only stdlib that asserts html.escape('<img src=x>') does not contain '<img'. Print PASS on success, exit 0. Return only code.",
-        model="qwen3.8-flash-next",
-        max_tokens=800,
-        timeout=30,
-        enable_thinking=False,
-        system_prompt="You write Python code. Return only Python code, no markdown fences, no JSON, no explanation.",
-    )
-    generated_code = (gen.get("response") or "").strip()
-    if generated_code.startswith("```"):
-        generated_code = generated_code.split("```")[1]
-        if generated_code.lower().startswith("python"):
-            generated_code = generated_code[6:]
-        generated_code = generated_code.strip()
-
-    executed_code = generated_code
-    attempts = []
-    source = "generated"
-
-    # Pattern A step 3: run it
-    if generated_code:
-        result = execute_python_in_sandbox(generated_code)
-        attempts.append({"attempt": 1, "source": "generated", "exit_code": result["exit_code"], "contained": result["contained_incident"]})
-    else:
-        result = None
-
-    # Pattern A step 4: retry once with error feedback
-    if (not result or result["exit_code"] != 0) and generated_code:
-        fix = call_vultr_serverless_inference(
-            prompt="Fix this Python test so it passes. Only stdlib, no network, no third-party packages. Return only the corrected Python code, no markdown, no explanation.",
+    # Harden generation: try 3 times with the SAME prompt before falling back
+    generated_code = ""
+    gen_attempts = 0
+    for gen_attempts in range(1, 4):
+        gen = call_vultr_serverless_inference(
+            prompt=(
+                "Write a standalone Python 3.12 script using only stdlib. "
+                "The script MUST execute at module level — imports, asserts, print statements. "
+                "NO test classes, NO test functions, NO pytest, NO unittest. "
+                "It must assert that html.escape('<img src=x>') does not contain '<img'. "
+                "Print PASS on success, exit 0. Return only Python code."
+            ),
             model="qwen3.8-flash-next",
-            system_prompt="You write Python code. Return only Python code, no markdown fences, no JSON, no explanation.",
             max_tokens=800,
             timeout=30,
             enable_thinking=False,
+            system_prompt=(
+                "You write standalone executable Python scripts. "
+                "The script runs directly with `python3 script.py` and must NOT use "
+                "any test framework (no unittest, no pytest, no test functions or classes). "
+                "Just imports, assert statements, and print statements at module level. "
+                "Return only Python code, no markdown, no JSON, no explanation."
+            ),
         )
-        fixed_code = (fix.get("response") or "").strip()
-        if fixed_code.startswith("```"):
-            fixed_code = fixed_code.split("```")[1]
-            if fixed_code.lower().startswith("python"):
-                fixed_code = fixed_code[6:]
-            fixed_code = fixed_code.strip()
-        if fixed_code:
-            executed_code = fixed_code
-            result = execute_python_in_sandbox(fixed_code)
-            attempts.append({"attempt": 2, "source": "retry", "exit_code": result["exit_code"], "contained": result["contained_incident"]})
+        code = (gen.get("response") or "").strip()
+        if code.startswith("```"):
+            code = code.split("```")[1]
+            if code.lower().startswith("python"):
+                code = code[6:]
+            code = code.strip()
+        if code:
+            generated_code = code
+            break
 
-    # Fallback: if generated + retry both failed, run the authored scenario code
-    if (not result or result["exit_code"] != 0) and req.custom_code:
-        executed_code = req.custom_code
-        result = execute_python_in_sandbox(req.custom_code)
+    if generated_code:
+        result = execute_python_in_sandbox(generated_code)
+        source = "generated"
+        attempts = [{"attempt": gen_attempts, "source": "generated", "exit_code": result["exit_code"], "contained": result["contained_incident"]}]
+    else:
+        code_to_run = req.custom_code or "assert 1 + 1 == 2\nprint('Verified')"
+        result = execute_python_in_sandbox(code_to_run)
+        result["executed_code"] = code_to_run
         source = "fallback"
-        attempts.append({"attempt": 3, "source": "fallback", "exit_code": result["exit_code"], "contained": result["contained_incident"]})
+        attempts = [{"attempt": 1, "source": "fallback", "exit_code": result["exit_code"], "contained": result["contained_incident"]}]
 
-    # If we have no result at all, produce one from the authored code
-    if result is None:
-        executed_code = req.custom_code or "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')"
-        result = execute_python_in_sandbox(executed_code)
-        source = "fallback"
-
-    # Pattern A step 5: model explains the real output
-    explanation = call_vultr_serverless_inference(
-        f"The Vultr sandbox executed Python and returned:\n"
-        f"exit_code: {result.get('exit_code')}\n"
-        f"contained_incident: {result.get('contained_incident')}\n"
-        f"stdout: {str(result.get('stdout', ''))[:500]}\n"
-        f"stderr: {str(result.get('stderr', ''))[:500]}\n\n"
-        f"In 1-2 sentences, explain what this output proves about the containment guarantees "
-        f"(--network none, --memory 256m, --read-only rootfs, 0 mounted secrets). "
-        f"Return plain text, not JSON."
-    )
-
-    result["executed_code"] = executed_code
     result["source"] = source
     result["attempts"] = attempts
     return {
-        "inference_plan": plan,
         "pattern_b_browser": browser_probe,
         "pattern_a_code": result,
-        "inference_explanation": explanation,
     }

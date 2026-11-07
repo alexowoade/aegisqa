@@ -1183,7 +1183,7 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
       state.auditRunning = true;
       const btnLabel = document.getElementById('btnRunAuditLabel');
       const plannerBadge = document.getElementById('plannerStateBadge');
-      btnLabel.textContent = 'Auditing in Sandbox...';
+      btnLabel.textContent = 'Auditing...';
       plannerBadge.textContent = 'DISPATCHING';
       plannerBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-vultr-500/30 text-vultr-300 border border-vultr-400/40 animate-pulse';
       state.pipelineSteps.forEach((s) => { s.status = 'QUEUED'; });
@@ -1193,56 +1193,61 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
       const targetUrl = document.getElementById('targetUrlInput').value;
       const goal = document.getElementById('auditGoalInput').value;
       const customCode = document.getElementById('sandboxCodeEditor').value;
-      appendReasoningLine(`[DISPATCH] POST /api/audit/dispatch — target ${targetUrl}`);
+      fetch('/api/audit/plan', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({target_url: targetUrl, goal: goal})
+      }).then(r => r.json()).then(plan => {
+        appendReasoningLine(`[PLAN] provider: ${plan.provider} | model: ${plan.model}`);
+        if (plan.response) appendReasoningLine(`[PLAN] ${String(plan.response).slice(0, 500)}`);
+      }).catch(() => appendReasoningLine('[PLAN] (unavailable)'));
+      appendReasoningLine(`[DISPATCH] target ${targetUrl}`);
       try {
         const t0 = performance.now();
-        const resp = await fetch('/api/audit/dispatch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target_url: targetUrl, goal: goal, custom_code: customCode})});
+        const resp = await fetch('/api/audit/dispatch', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({target_url: targetUrl, goal: goal, custom_code: customCode})
+        });
         const data = await resp.json();
         const elapsed = Math.round(performance.now() - t0);
-        document.getElementById('inferenceLatencyBadge').textContent = `${elapsed} ms · LIVE VULTR`;
-        const plan = data.inference_plan || {};
-        appendReasoningLine(`[VULTR INFERENCE] provider: ${plan.provider} | model: ${plan.model}`);
-        if (plan.response) appendReasoningLine(`[VULTR RESPONSE] ${String(plan.response).slice(0, 600)}`);
-        if (plan.error) appendReasoningLine(`[VULTR ERROR] ${plan.error}`);
+        document.getElementById('inferenceLatencyBadge').textContent = `${elapsed} ms · dispatch`;
         const probe = data.pattern_b_browser || {};
         const codeRes = data.pattern_a_code || {};
-        appendReasoningLine(`[PATTERN B] HTTP probe container ${probe.container_id} exit ${probe.exit_code} — ${probe.stdout || ''}`);
-        appendReasoningLine(`[PATTERN A] Code container ${codeRes.container_id} exit ${codeRes.exit_code} — ${codeRes.stdout || ''}`);
-        appendReasoningLine(`[RECEIPT] Pattern B SHA-256 ${(probe.sha256_receipt||'').slice(0,16)}... | Pattern A SHA-256 ${(codeRes.sha256_receipt||'').slice(0,16)}...`);
-        const explain = data.inference_explanation || {};
-        if (explain.response) appendReasoningLine(`[VULTR EXPLAINS REAL OUTPUT] ${String(explain.response).slice(0, 600)}`);
-        if (explain.error) appendReasoningLine(`[VULTR EXPLAIN NOTE] ${explain.error}`);
+        appendReasoningLine(`[PATTERN B] HTTP probe container ${probe.container_id} exit ${probe.exit_code}`);
+        appendReasoningLine(`[PATTERN A] Code container ${codeRes.container_id} exit ${codeRes.exit_code} source=${codeRes.source}`);
         state.lastAuditReceipt = codeRes.sha256_receipt || probe.sha256_receipt;
         if (codeRes.executed_code) document.getElementById('sandboxCodeEditor').value = codeRes.executed_code;
-        const attempts = codeRes.attempts || [];
-        const attemptStr = attempts.map(a => `attempt ${a.attempt} (${a.source}) exit ${a.exit_code}${a.contained ? ' CONTAINED' : ''}`).join(' | ');
-        const sourceLine = `[PATTERN A] Code source: ${codeRes.source || 'unknown'} — ${attemptStr || 'single attempt'}`;
-        appendReasoningLine(sourceLine);
         document.getElementById('sandboxTerminalOutput').textContent = (codeRes.stdout || '') + (codeRes.stderr || '') + '\n[container ' + (codeRes.container_id || '') + ' exit ' + (codeRes.exit_code ?? '') + ' source=' + (codeRes.source || '?') + ']';
-        document.getElementById('patchDiffViewer').textContent = '// Real audit output above. No patch was applied in this MVP — the receipt is the proof of containment + verification.';
         if (codeRes.container_id) { state.containerId = codeRes.container_id; document.getElementById('activeContainerBadge').textContent = `container: ${state.containerId}`; }
-        const sc = SCENARIOS[state.activeScenario] || SCENARIOS.finflow;
         const stepViews = ['browser', 'browser', 'browser', 'code', 'diff', 'diff'];
         for (let i = 0; i < state.pipelineSteps.length; i++) {
           state.pipelineSteps[i].status = 'RUNNING';
           renderPipelineSteps();
           switchViewportTab(stepViews[i]);
           if (i < 3) selectBrowserSnapshot(i);
-          appendSecurityLog(`[STEP ${i + 1}/6] Container ${state.containerId}: ${state.pipelineSteps[i].title} -> OK`);
+          appendSecurityLog(`[STEP ${i + 1}/6] ${state.pipelineSteps[i].title} -> OK`);
           updateTelemetryDataPoint(55 + i * 8, 18 + i * 4);
-          playTelemetrySound('step');
-          await sleep(300);
+          await sleep(200);
           state.pipelineSteps[i].status = i === 5 ? 'READY FOR SIGN-OFF' : 'VERIFIED';
           renderPipelineSteps();
         }
+        fetch('/api/audit/explain', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            exit_code: codeRes.exit_code || 0,
+            stdout: codeRes.stdout || '',
+            stderr: codeRes.stderr || '',
+            contained_incident: codeRes.contained_incident || false
+          })
+        }).then(r => r.json()).then(explain => {
+          if (explain.response) appendReasoningLine(`[EXPLAIN] ${String(explain.response).slice(0, 500)}`);
+        }).catch(() => appendReasoningLine('[EXPLAIN] (unavailable)'));
         plannerBadge.textContent = 'VERIFIED';
         plannerBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
         btnLabel.textContent = 'Dispatch Audit';
         state.auditRunning = false;
-        playTelemetrySound('success');
-        showToast('🛡️', `Sandbox audit complete in container ${state.containerId}. Ready for human approval.`);
+        showToast('🛡️', `Audit complete in ${state.containerId} (source: ${codeRes.source})`);
       } catch (err) {
-        appendReasoningLine(`[ERROR] /api/audit/dispatch failed: ${err}`);
+        appendReasoningLine(`[ERROR] dispatch failed: ${err}`);
         plannerBadge.textContent = 'FAILED';
         btnLabel.textContent = 'Dispatch Audit';
         state.auditRunning = false;
