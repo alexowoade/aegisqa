@@ -256,10 +256,9 @@ def dispatch_full_audit(req: AuditRequest):
                 "It must assert that html.escape('<img src=x>') does not contain '<img'. "
                 "Print PASS on success, exit 0. Return only Python code."
             ),
-            model="qwen3.8-flash-next",
-            max_tokens=800,
-            timeout=30,
-            enable_thinking=False,
+            model="deepseek-v4.1-flash-1017",
+            max_tokens=4000,
+            timeout=60,
             system_prompt=(
                 "You write standalone executable Python scripts. "
                 "The script runs directly with `python3 script.py` and must NOT use "
