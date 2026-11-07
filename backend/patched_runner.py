@@ -55,6 +55,7 @@ def run_test_against(test_code: str, source_code: str, label: str, timeout_sec: 
         return {
             "label": label,
             "container_id": cid,
+            "executed_code": test_code,
             "exit_code": exit_code,
             "stdout": stdout,
             "stderr": stderr,

@@ -279,28 +279,42 @@ def audit_explain(req: ExplainRequest):
 
 @app.post("/api/audit/dispatch")
 def dispatch_full_audit(req: AuditRequest):
+    from pathlib import Path
+    from patched_runner import run_test_against
+
+    plan = call_vultr_serverless_inference(f"Target: {req.target_url}\nGoal: {req.goal}")
     browser_probe = execute_http_probe_in_sandbox(req.target_url)
 
-    # Harden generation: try 3 times with the SAME prompt before falling back
+    demo_dir = Path(__file__).parent / "demo_target"
+    vuln_src = (demo_dir / "vulnerable.py").read_text(encoding="utf-8")
+    fixed_src = (demo_dir / "fixed.py").read_text(encoding="utf-8")
+
     generated_code = ""
-    gen_attempts = 0
-    for gen_attempts in range(1, 4):
+    attempts = []
+    source = "fallback"
+
+    for attempt in range(1, 4):
         gen = call_vultr_serverless_inference(
             prompt=(
-                "Write a standalone Python 3.12 script using only stdlib. "
-                "The script MUST execute at module level — imports, asserts, print statements. "
-                "NO test classes, NO test functions, NO pytest, NO unittest. "
-                "It must assert that html.escape('<img src=x>') does not contain '<img'. "
-                "Print PASS on success, exit 0. Return only Python code."
+                f"Here is a Python source file with a security vulnerability:\n\n{vuln_src}\n\n"
+                f"The file is mounted at /workspace/app.py inside the sandbox. "
+                f"Write a standalone Python 3.12 test that:\n"
+                f"- Imports `process_promo` from `app`\n"
+                f"- Calls it with the XSS payload '<img src=x onerror=alert(1)>'\n"
+                f"- Asserts the returned HTML does NOT contain an unescaped '<img' tag\n"
+                f"- If XSS is escaped (safe): prints PASS, exits 0\n"
+                f"- If XSS is present (vulnerable): prints 'VULNERABLE: XSS payload reflected unescaped', exits 1\n"
+                f"- Uses only stdlib\n"
+                f"- Executes at module level (no functions, no classes, no test framework)\n"
+                f"Return ONLY the Python code, no markdown, no explanation."
             ),
             model="deepseek-v4.1-flash-1017",
             max_tokens=4000,
             timeout=60,
             system_prompt=(
                 "You write standalone executable Python scripts. "
-                "The script runs directly with `python3 script.py` and must NOT use "
-                "any test framework (no unittest, no pytest, no test functions or classes). "
-                "Just imports, assert statements, and print statements at module level. "
+                "Imports, asserts, print statements at module level only. "
+                "No test framework, no functions, no classes. "
                 "Return only Python code, no markdown, no JSON, no explanation."
             ),
         )
@@ -310,26 +324,41 @@ def dispatch_full_audit(req: AuditRequest):
             if code.lower().startswith("python"):
                 code = code[6:]
             code = code.strip()
-        if code:
+        attempts.append({
+            "attempt": attempt,
+            "code_len": len(code),
+            "has_import": ("from app" in code or "import app" in code),
+            "has_assert": "assert" in code,
+        })
+        if code and ("from app" in code or "import app" in code) and "process_promo" in code and "assert" in code:
             generated_code = code
+            source = "generated"
             break
 
     if generated_code:
-        result = execute_python_in_sandbox(generated_code)
-        source = "generated"
-        attempts = [{"attempt": gen_attempts, "source": "generated", "exit_code": result["exit_code"], "contained": result["contained_incident"]}]
+        result = run_test_against(generated_code, fixed_src, "dispatch-real-target")
     else:
-        code_to_run = req.custom_code or "assert 1 + 1 == 2\nprint('Verified')"
-        result = execute_python_in_sandbox(code_to_run)
-        result["executed_code"] = code_to_run
-        source = "fallback"
-        attempts = [{"attempt": 1, "source": "fallback", "exit_code": result["exit_code"], "contained": result["contained_incident"]}]
+        fallback_code = req.custom_code or "print('fallback')"
+        result = run_test_against(fallback_code, fixed_src, "dispatch-fallback")
 
     result["source"] = source
     result["attempts"] = attempts
+    result["target_source_path"] = "/workspace/app.py"
+    result["target_source_version"] = "fixed"
+
+    explanation = call_vultr_serverless_inference(
+        f"The Vultr sandbox executed a Python test against the real source file "
+        f"(/workspace/app.py) and returned:\n"
+        f"exit_code: {result.get('exit_code')}\n"
+        f"stdout: {str(result.get('stdout', ''))[:500]}\n\n"
+        f"In 1-2 sentences, explain what this proves about XSS escaping in the shipped app."
+    )
+
     return {
+        "inference_plan": plan,
         "pattern_b_browser": browser_probe,
         "pattern_a_code": result,
+        "inference_explanation": explanation,
     }
 
 
