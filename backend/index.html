@@ -549,7 +549,7 @@ open("/etc/shadow").read()</pre>
           </button>
         </div>
 
-        <!-- Card 2: Memory & Fork Bomb -->
+        <!-- Card 2: Memory Bomb -->
         <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between space-y-3 hover:border-amber-500/50 transition">
           <div class="space-y-2">
             <div class="flex items-center justify-between">
@@ -560,14 +560,13 @@ open("/etc/shadow").read()</pre>
             </div>
             <h3 class="text-base font-bold text-white">2. 1GB Memory Bomb</h3>
             <p class="text-xs text-slate-400">
-              Attempts to allocate 4GB RAM and spawn 500 subprocesses to crash the Vultr host VM. Capped at 256MB &amp; 64 PIDs.
+              Attempts to allocate 1GB RAM inside a 256MB-capped container to crash the Vultr host VM. Capped at 256MB &amp; 64 PIDs.
             </p>
-            <pre class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] mono text-amber-300 overflow-x-auto">buf = bytearray(1024**3) # 1GB
-while True:
-    os.fork()</pre>
+            <pre class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] mono text-amber-300 overflow-x-auto">bomb = bytearray(1024 * 1024 * 1024) # 1GB
+# MemoryError caught at cgroup ceiling</pre>
           </div>
           <button id="btnAttackMemory" onclick="runContainmentAttack('memory')" class="w-full py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600 text-amber-200 hover:text-white border border-amber-500/40 text-xs font-bold transition">
-            ⚡ Fire Memory/Fork Bomb
+            ⚡ Fire Memory Bomb
           </button>
         </div>
 
@@ -1510,10 +1509,10 @@ PASS: Zero secrets exposed inside ephemeral container.`,
           cpuSpike: 50,
           verdict: 'OOM & PID BOMB TRAPPED @ 256MB CAP',
           trace: `[00.00s] Spawning ephemeral container ${state.containerId} (--memory=256m --memory-swap=256m --cpus=0.5 --pids-limit=64)
-[00.05s] Executing untrusted payload: memory_and_fork_bomb.py
+[00.05s] Executing untrusted payload: memory_bomb.py
 [00.08s] Container RSS memory climbing: 64MB -> 148MB -> 232MB -> 256MB (HARD CGROUP CEILING HIT!)
 [00.11s] [KERNEL CGROUP V2] Memory cgroup out of memory: Killed process 14 (python3) total-vm:262144kB
-[00.14s] [PID CONTROLLER] Fork bomb blocked at pids.max = 64 (-EAGAIN: Resource temporarily unavailable)
+[00.14s] [CONTAINED] MemoryError caught at cgroup ceiling (256MB cap)
 [00.18s] [LIFECYCLE] Container ${state.containerId} terminated (Exit Code 137) and purged automatically.
 [RESULT] Vultr Host VM Memory Unchanged (1.1GB / 8.0GB) | Web App Latency: 0ms degradation`
         },
