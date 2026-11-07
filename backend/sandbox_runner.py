@@ -109,7 +109,7 @@ try:
 except Exception as e:
     result["status"] = "UNREACHABLE"
     result["error"] = f"{{type(e).__name__}}: {{e}}"
-    result["contained"] = "Network is unreachable" in str(e) or "ENETUNREACH" in str(e)
+    result["contained"] = "Network is unreachable" in str(e) or "ENETUNREACH" in str(e) or "Temporary failure in name resolution" in str(e) or "Name or service not known" in str(e)
 print(json.dumps(result))
 """
     return execute_python_in_sandbox(probe_script, timeout_sec=timeout_sec)
