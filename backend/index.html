@@ -151,6 +151,9 @@
         <button id="navTabArchitecture" onclick="switchMainView('architecture')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap text-slate-300 hover:text-white hover:bg-slate-800/60">
           4. Vultr Architecture &amp; Pitch Kit
         </button>
+        <button id="navTabBrowser" onclick="switchMainView('browser')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap text-slate-300 hover:text-white hover:bg-slate-800/60">
+          🌐 Browser Lab
+        </button>
       </nav>
 
       <!-- Quick Action Toolbar -->
@@ -776,6 +779,24 @@ cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 80
 
       </div>
     </section>
+    <section id="viewBrowserLab" class="hidden space-y-4">
+      <div class="glass-panel rounded-2xl p-5 space-y-4">
+        <div class="border-b border-slate-800 pb-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-vultr-400">Pattern B · Real Browser Probe</span>
+          <h2 class="text-lg font-extrabold text-white mt-0.5">Browser Lab — Playwright in an Isolated Container</h2>
+          <p class="text-xs text-slate-400 mt-1">A real Chromium browser inside a Docker container on its own network loads the FinFlow checkout, fills the promo field with an XSS payload, submits it, and reports whether the payload was reflected unescaped. Screenshot + DOM snippet + SHA-256 receipt.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center">
+          <input id="browserTargetInput" class="flex-1 min-w-[280px] bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs mono text-slate-200" value="http://aegisqa-browser-target:5000/checkout">
+          <button onclick="runBrowserProbe()" class="bg-gradient-to-r from-vultr-500 to-cyan-500 text-slate-950 font-bold text-sm py-2 px-4 rounded-xl">Run Browser Probe</button>
+        </div>
+        <pre id="browserProbeOutput" class="bg-slate-900/95 border border-slate-800 rounded-lg p-3 text-xs mono overflow-x-auto max-h-96 leading-relaxed text-slate-200">No browser probe yet. Click "Run Browser Probe".</pre>
+        <div id="browserScreenshotWrap" class="hidden">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Screenshot from inside the sandbox</span>
+          <img id="browserScreenshot" class="mt-2 rounded-lg border border-slate-800 max-w-full" alt="Browser screenshot">
+        </div>
+      </div>
+    </section>
 
   </main>
 
@@ -1036,18 +1057,20 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
     // =========================================================================
     function switchMainView(view) {
       state.activeView = view;
-      const views = ['studio', 'containment', 'receipts', 'architecture'];
+      const views = ['studio', 'containment', 'receipts', 'architecture', 'browser'];
       const tabIds = {
         studio: 'navTabStudio',
         containment: 'navTabContainment',
         receipts: 'navTabReceipts',
-        architecture: 'navTabArchitecture'
+        architecture: 'navTabArchitecture',
+        browser: 'navTabBrowser'
       };
       const sectionIds = {
         studio: 'viewStudio',
         containment: 'viewContainment',
         receipts: 'viewReceipts',
-        architecture: 'viewArchitecture'
+        architecture: 'viewArchitecture',
+        browser: 'viewBrowserLab'
       };
 
       views.forEach((v) => {
@@ -1276,6 +1299,26 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
         plannerBadge.textContent = 'FAILED';
         btnLabel.textContent = 'Dispatch Audit';
         state.auditRunning = false;
+      }
+    }
+
+    async function runBrowserProbe() {
+      const out = document.getElementById('browserProbeOutput');
+      const target = document.getElementById('browserTargetInput').value;
+      out.textContent = 'Running real Chromium probe in isolated container...';
+      document.getElementById('browserScreenshotWrap').classList.add('hidden');
+      try {
+        const resp = await fetch('/api/browser/probe', {method:'POST', headers:{'Content-Type':'application/json', 'X-AegisQA-Token': 'aegisqa-demo-2026'}, body: JSON.stringify({target_url: target})});
+        const data = await resp.json();
+        const p = data.probe || {};
+        out.textContent = 'Container: ' + data.container_id + '\nExit code: ' + data.exit_code + '\nDuration: ' + data.duration_ms + ' ms\nSHA-256 receipt: ' + data.sha256_receipt + '\nStatus: ' + (p.status || '?') + '\nTitle: ' + (p.title || '') + '\nURL: ' + (p.url || '') + '\nXSS reflected: ' + (p.xss_reflected ?? '?') + '\nDOM snippet: ' + (p.dom_snippet || '') + '\n' + (data.stderr || '');
+        if (p.screenshot_b64) {
+          document.getElementById('browserScreenshot').src = 'data:image/png;base64,' + p.screenshot_b64;
+          document.getElementById('browserScreenshotWrap').classList.remove('hidden');
+        }
+        appendSecurityLog(`[PATTERN-B] Browser probe ${data.container_id} status=${p.status} xss_reflected=${p.xss_reflected} SHA-256 ${(data.sha256_receipt||'').slice(0,16)}...`);
+      } catch (err) {
+        out.textContent = 'Error calling /api/browser/probe: ' + err;
       }
     }
 

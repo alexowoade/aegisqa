@@ -331,3 +331,15 @@ def dispatch_full_audit(req: AuditRequest):
         "pattern_b_browser": browser_probe,
         "pattern_a_code": result,
     }
+
+
+class BrowserProbeRequest(BaseModel):
+    target_url: str = Field(..., max_length=500)
+
+
+@app.post("/api/browser/probe")
+def browser_probe(req: BrowserProbeRequest, x_aegisqa_token: str = Header(default="")):
+    if EXEC_TOKEN and x_aegisqa_token != EXEC_TOKEN:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from playwright_runner import run_playwright_probe
+    return JSONResponse(run_playwright_probe(req.target_url))

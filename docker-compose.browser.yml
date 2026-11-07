@@ -1,0 +1,11 @@
+services:
+  target:
+    image: python:3.12-slim
+    container_name: aegisqa-browser-target
+    working_dir: /app
+    volumes: ["./backend/demo_target:/app:ro"]
+    command: sh -c "pip install --no-cache-dir flask && python vulnerable_web.py"
+    networks: [aegisqa-browser-net]
+networks:
+  aegisqa-browser-net:
+    name: aegisqa-browser-net
