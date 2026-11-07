@@ -42,9 +42,9 @@ VULTR_INFERENCE_MODEL = os.environ.get(
 
 
 class AuditRequest(BaseModel):
-    target_url: str
-    goal: str
-    custom_code: Optional[str] = None
+    target_url: str = Field(..., max_length=500)
+    goal: str = Field(..., max_length=1000)
+    custom_code: Optional[str] = Field(default=None, max_length=20000)
 
 
 class SandboxExecRequest(BaseModel):

@@ -695,7 +695,7 @@ open("/bin/sh", "wb").write(b"0")</pre>
     <section id="viewArchitecture" class="hidden space-y-4">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <!-- Architecture Diagram & Vultr Stack -->
-        <div class="lg:col-span-7 glass-panel rounded-2xl p-5 space-y-4">
+        <div class="lg:col-span-12 glass-panel rounded-2xl p-5 space-y-4">
           <div class="border-b border-slate-800 pb-3">
             <span class="text-xs font-bold uppercase tracking-wider text-vultr-400">Challenge 1 · System Architecture</span>
             <h2 class="text-lg font-extrabold text-white mt-0.5">How Vultr Powers AegisQA End-to-End</h2>
@@ -1210,7 +1210,7 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
         appendReasoningLine(`[PATTERN A] Code container ${codeRes.container_id} exit ${codeRes.exit_code} — ${codeRes.stdout || ''}`);
         appendReasoningLine(`[RECEIPT] Pattern B SHA-256 ${(probe.sha256_receipt||'').slice(0,16)}... | Pattern A SHA-256 ${(codeRes.sha256_receipt||'').slice(0,16)}...`);
         state.lastAuditReceipt = codeRes.sha256_receipt || probe.sha256_receipt;
-        document.getElementById('sandboxTerminalOutput').textContent = (codeRes.stdout || '') + '\n[container ' + (codeRes.container_id || '') + ' exit ' + (codeRes.exit_code ?? '') + ']';
+        document.getElementById('sandboxTerminalOutput').textContent = (codeRes.stdout || '') + (codeRes.stderr || '') + '\n[container ' + (codeRes.container_id || '') + ' exit ' + (codeRes.exit_code ?? '') + ']';
         document.getElementById('patchDiffViewer').textContent = '// Real audit output above. No patch was applied in this MVP — the receipt is the proof of containment + verification.';
         if (codeRes.container_id) { state.containerId = codeRes.container_id; document.getElementById('activeContainerBadge').textContent = `container: ${state.containerId}`; }
         const sc = SCENARIOS[state.activeScenario] || SCENARIOS.finflow;
