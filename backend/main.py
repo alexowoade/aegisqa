@@ -147,8 +147,20 @@ def dispatch_full_audit(req: AuditRequest):
     browser_probe = execute_http_probe_in_sandbox(req.target_url)
     code_to_run = req.custom_code or "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')"
     code_verify = execute_python_in_sandbox(code_to_run)
+    # Second inference call: model explains the real container output (Pattern A step 5)
+    explanation = call_vultr_serverless_inference(
+        f"The Vultr sandbox executed the following Python code and returned:\n"
+        f"exit_code: {code_verify.get('exit_code')}\n"
+        f"contained_incident: {code_verify.get('contained_incident')}\n"
+        f"stdout: {str(code_verify.get('stdout', ''))[:500]}\n"
+        f"stderr: {str(code_verify.get('stderr', ''))[:500]}\n\n"
+        f"In 1-2 sentences, explain what this output proves about the containment guarantees "
+        f"(--network none, --memory 256m, --read-only rootfs, 0 mounted secrets). "
+        f"Return plain text, not JSON."
+    )
     return {
         "inference_plan": plan,
         "pattern_b_browser": browser_probe,
-        "pattern_a_code": code_verify
+        "pattern_a_code": code_verify,
+        "inference_explanation": explanation,
     }

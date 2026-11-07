@@ -1209,6 +1209,9 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
         appendReasoningLine(`[PATTERN B] HTTP probe container ${probe.container_id} exit ${probe.exit_code} — ${probe.stdout || ''}`);
         appendReasoningLine(`[PATTERN A] Code container ${codeRes.container_id} exit ${codeRes.exit_code} — ${codeRes.stdout || ''}`);
         appendReasoningLine(`[RECEIPT] Pattern B SHA-256 ${(probe.sha256_receipt||'').slice(0,16)}... | Pattern A SHA-256 ${(codeRes.sha256_receipt||'').slice(0,16)}...`);
+        const explain = data.inference_explanation || {};
+        if (explain.response) appendReasoningLine(`[VULTR EXPLAINS REAL OUTPUT] ${String(explain.response).slice(0, 600)}`);
+        if (explain.error) appendReasoningLine(`[VULTR EXPLAIN NOTE] ${explain.error}`);
         state.lastAuditReceipt = codeRes.sha256_receipt || probe.sha256_receipt;
         document.getElementById('sandboxTerminalOutput').textContent = (codeRes.stdout || '') + (codeRes.stderr || '') + '\n[container ' + (codeRes.container_id || '') + ' exit ' + (codeRes.exit_code ?? '') + ']';
         document.getElementById('patchDiffViewer').textContent = '// Real audit output above. No patch was applied in this MVP — the receipt is the proof of containment + verification.';
