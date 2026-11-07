@@ -343,3 +343,114 @@ def browser_probe(req: BrowserProbeRequest, x_aegisqa_token: str = Header(defaul
         raise HTTPException(status_code=401, detail="Unauthorized")
     from playwright_runner import run_playwright_probe
     return JSONResponse(run_playwright_probe(req.target_url))
+
+
+class AutoPatchRequest(BaseModel):
+    pass
+
+
+def _extract_python_code(raw: str) -> str:
+    """Strip markdown fences and leading 'python' language tag."""
+    if not raw:
+        return ""
+    code = raw.strip()
+    if code.startswith("```"):
+        parts = code.split("```")
+        if len(parts) >= 2:
+            code = parts[1]
+            if code.lower().startswith("python"):
+                code = code[6:]
+    return code.strip()
+
+
+def _validate_patch(code: str, original_source: str) -> tuple:
+    """Basic sanity checks on AI-generated patch. Returns (valid, reason)."""
+    if not code:
+        return False, "empty patch"
+    try:
+        compile(code, "<ai-patch>", "exec")
+    except SyntaxError as e:
+        return False, f"syntax error: {e}"
+    if "def process_promo" not in code:
+        return False, "missing process_promo function"
+    forbidden = ["import requests", "import bs4", "from requests", "from bs4", "import urllib.request"]
+    for f in forbidden:
+        if f in code:
+            return False, f"forbidden import: {f}"
+    if code.strip() == original_source.strip():
+        return False, "patch identical to original"
+    return True, "ok"
+
+
+@app.post("/api/audit/autopatch")
+def audit_autopatch():
+    """AI reads vulnerable source, writes patched version, sandbox verifies."""
+    from pathlib import Path
+    from patched_runner import run_test_against
+
+    demo_dir = Path(__file__).parent / "demo_target"
+    vulnerable_src = (demo_dir / "vulnerable.py").read_text(encoding="utf-8")
+    test_code = (demo_dir / "test_xss.py").read_text(encoding="utf-8")
+
+    attempts = []
+    ai_patch = ""
+    patch_valid = False
+    validation_reason = ""
+
+    for attempt in range(1, 4):
+        response = call_vultr_serverless_inference(
+            prompt=(
+                f"Here is a vulnerable Python file:\n\n{vulnerable_src}\n\n"
+                f"The vulnerability: XSS via unescaped HTML concatenation in process_promo. "
+                f"Write a fixed version of this exact file. "
+                f"Keep the function name `process_promo` and its signature identical. "
+                f"Keep the file minimal — do not add docstrings, type hints, comments, or extra code. "
+                f"Use only the Python standard library (html.escape is available). "
+                f"Return ONLY the complete fixed Python file, no markdown, no explanation."
+            ),
+            model="deepseek-v4.1-flash-1017",
+            max_tokens=2000,
+            timeout=60,
+            system_prompt="You write Python code. Return only Python code, no markdown, no JSON, no explanation.",
+        )
+        raw = response.get("response", "") or ""
+        ai_patch = _extract_python_code(raw)
+        patch_valid, validation_reason = _validate_patch(ai_patch, vulnerable_src)
+        attempts.append({
+            "attempt": attempt,
+            "raw_len": len(raw),
+            "patch_len": len(ai_patch),
+            "valid": patch_valid,
+            "reason": validation_reason,
+        })
+        if patch_valid:
+            break
+
+    if not patch_valid:
+        return {
+            "fix_verified": False,
+            "error": "AI patch failed validation on all attempts",
+            "attempts": attempts,
+            "ai_patch_source": ai_patch[:800] if ai_patch else "",
+        }
+
+    test_result = run_test_against(test_code, ai_patch, "ai-patch")
+
+    return {
+        "ai_patch_source": ai_patch[:1500],
+        "ai_patch_test": {
+            "container_id": test_result["container_id"],
+            "exit_code": test_result["exit_code"],
+            "stdout": test_result["stdout"],
+            "stderr": test_result["stderr"],
+            "duration_ms": test_result["duration_ms"],
+            "sha256_receipt": test_result["sha256_receipt"],
+        },
+        "fix_verified": test_result["exit_code"] == 0,
+        "attempts": attempts,
+        "verdict": (
+            "PASS: AI-written patch verified by sandbox"
+            if test_result["exit_code"] == 0
+            else "FAIL: AI patch did not pass the test"
+        ),
+    }
