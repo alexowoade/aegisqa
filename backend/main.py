@@ -8,13 +8,13 @@ Integrates:
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 import urllib.request
 import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sandbox_runner import execute_python_in_sandbox, execute_http_probe_in_sandbox
 from containment_demo import CONTAINMENT_PAYLOADS
@@ -48,12 +48,12 @@ class AuditRequest(BaseModel):
 
 
 class SandboxExecRequest(BaseModel):
-    code: str
-    timeout_sec: int = 12
+    code: str = Field(..., max_length=20000)
+    timeout_sec: int = Field(default=12, ge=1, le=20)
 
 
 class ContainmentAttackRequest(BaseModel):
-    attack_type: str  # "secrets" | "memory" | "network" | "filesystem"
+    attack_type: Literal["secrets", "memory", "network", "filesystem"]
 
 
 def call_vultr_serverless_inference(prompt: str) -> dict:
@@ -67,7 +67,7 @@ def call_vultr_serverless_inference(prompt: str) -> dict:
             "model": VULTR_INFERENCE_MODEL,
             "plan": [
                 "1. Probe target with an isolated headless HTTP probe.",
-                "2. Reproduce boundary vulnerability with pytest in --network none container.",
+                "2. Reproduce boundary vulnerability with Python in --network none container.",
                 "3. Synthesize context-aware patch and verify 0 regressions."
             ]
         }

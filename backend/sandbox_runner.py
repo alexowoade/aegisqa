@@ -28,6 +28,7 @@ def execute_python_in_sandbox(code: str, timeout_sec: int = 12) -> Dict[str, Any
     with tempfile.TemporaryDirectory() as tmpdir:
         script_path = Path(tmpdir) / "task_verify.py"
         script_path.write_text(code, encoding="utf-8")
+        script_path.chmod(0o644)
 
         cmd = [
             "docker", "run",
@@ -59,11 +60,28 @@ def execute_python_in_sandbox(code: str, timeout_sec: int = 12) -> Dict[str, Any
             exit_code = proc.returncode
             stdout = proc.stdout
             stderr = proc.stderr
-            contained = exit_code in (137, 139, 126) or "PermissionError" in stderr or "Read-only" in stderr or "[CONTAINED]" in stdout or "Network is unreachable" in stdout or "Read-only file system" in stdout
+            combined_out = f"{stdout}\n{stderr}"
+            contained = (
+                exit_code in (126, 137, 139)
+                or any(
+                    marker in combined_out
+                    for marker in (
+                        "[CONTAINED]",
+                        "PermissionError",
+                        "MemoryError",
+                        "Read-only",
+                        "Network is unreachable",
+                        "ENETUNREACH",
+                        "Temporary failure in name resolution",
+                    )
+                )
+            )
         except subprocess.TimeoutExpired as exc:
             exit_code = 124
-            stdout = exc.stdout or ""
-            stderr = (exc.stderr or "") + f"\n[CONTAINMENT] Killed after {timeout_sec}s wall-clock cap."
+            raw_out = exc.stdout or ""
+            raw_err = exc.stderr or ""
+            stdout = raw_out.decode("utf-8", errors="replace") if isinstance(raw_out, bytes) else raw_out
+            stderr = (raw_err.decode("utf-8", errors="replace") if isinstance(raw_err, bytes) else raw_err) + f"\n[CONTAINMENT] Killed after {timeout_sec}s wall-clock cap."
             contained = True
         finally:
             # Unconditional teardown guarantee

@@ -738,7 +738,7 @@ open("/bin/sh", "wb").write(b"0")</pre>
               <rect x="28" y="165" width="437" height="85" rx="10" fill="#0b1324" stroke="#06b6d4" stroke-width="1.5"/>
               <text x="44" y="190" fill="#ffffff" font-family="Inter" font-size="12" font-weight="bold">3. Vultr Serverless Inference (https://api.vultrinference.com/v1)</text>
               <text x="44" y="210" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">Models: deepseek-v4.1-flash-1017 / llama-3.3-70b-instruct</text>
-              <text x="44" y="228" fill="#22d3ee" font-family="JetBrains Mono" font-size="10">Plans probes → Writes pytest repro → Synthesizes self-healing patch</text>
+              <text x="44" y="228" fill="#22d3ee" font-family="JetBrains Mono" font-size="10">Plans probes → Writes Python repro → Synthesizes self-healing patch</text>
 
               <!-- Node 4: Isolated Sandbox Zone -->
               <rect x="500" y="45" width="232" height="205" rx="12" fill="url(#sandboxGrad)" stroke="#f43f5e" stroke-width="2"/>
@@ -920,9 +920,9 @@ cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 80
         { id: 1, title: '1. Vultr Inference Threat Plan', detail: 'Decompose target attack surface', status: 'PENDING' },
         { id: 2, title: '2. Containment Test: Sandbox Cannot Reach Target', detail: 'Real HTTP attempt, blocked by --network none', status: 'PENDING' },
         { id: 3, title: '3. HTTP Probe Triage', detail: 'Verify probe response & state', status: 'PENDING' },
-        { id: 4, title: '4. Pattern A: Pytest Exploit Repro', detail: 'Confirm bug in isolated container', status: 'PENDING' },
+        { id: 4, title: '4. Pattern A: Python Exploit Repro', detail: 'Confirm bug in isolated container', status: 'PENDING' },
         { id: 5, title: '5. Sandbox Verification', detail: 'Verify code execution in isolated container', status: 'PENDING' },
-        { id: 6, title: '6. Human Approval & Receipt', detail: 'Await operator sign-off', status: 'RUNNING' }
+        { id: 6, title: '6. Human Approval & Receipt', detail: 'Await operator sign-off', status: 'PENDING' }
       ],
       receipts: []
     };
@@ -1238,10 +1238,11 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
       rBox.innerHTML = '';
       const targetUrl = document.getElementById('targetUrlInput').value;
       const goal = document.getElementById('auditGoalInput').value;
+      const customCode = document.getElementById('sandboxCodeEditor').value;
       appendReasoningLine(`[DISPATCH] POST /api/audit/dispatch — target ${targetUrl}`);
       try {
         const t0 = performance.now();
-        const resp = await fetch('/api/audit/dispatch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target_url: targetUrl, goal: goal})});
+        const resp = await fetch('/api/audit/dispatch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target_url: targetUrl, goal: goal, custom_code: customCode})});
         const data = await resp.json();
         const elapsed = Math.round(performance.now() - t0);
         document.getElementById('inferenceLatencyBadge').textContent = `${elapsed} ms · LIVE VULTR`;
@@ -1618,7 +1619,7 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
     function copyGitHubPrTemplate() {
       if (state.receipts.length === 0) { showToast('⚠️', 'No receipts yet — run an audit first.'); return; }
       const r = state.receipts[0];
-      const text = ['### 🛡️ AegisQA Verified Security & QA Patch (' + r.id + ')', '- **Target**: ' + r.target, '- **Finding**: ' + r.finding, '- **Sandbox Containment**: ' + r.containment, '- **SHA-256 Execution Proof**: `' + r.sha256 + '`'].join('\\n');
+      const text = ['### 🛡️ AegisQA Verified Security & QA Patch (' + r.id + ')', '- **Target**: ' + r.target, '- **Finding**: ' + r.finding, '- **Sandbox Containment**: ' + r.containment, '- **SHA-256 Execution Proof**: `' + r.sha256 + '`'].join('\n');
       copyTextToClipboard(text);
       showToast('📋', 'Copied GitHub Pull Request verification summary to clipboard.');
     }
