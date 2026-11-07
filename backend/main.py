@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal, Optional
 import urllib.request
 import json
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -39,6 +39,7 @@ VULTR_INFERENCE_MODEL = os.environ.get(
     "VULTR_INFERENCE_MODEL",
     "deepseek-v4.1-flash-1017"
 )
+EXEC_TOKEN = os.environ.get("AEGISQA_EXEC_TOKEN", "")
 
 
 class AuditRequest(BaseModel):
@@ -208,9 +209,45 @@ def health_check():
 
 
 @app.post("/api/sandbox/exec")
-def run_sandbox_code(req: SandboxExecRequest):
+def run_sandbox_code(req: SandboxExecRequest, x_aegisqa_token: str = Header(default="")):
+    if EXEC_TOKEN and x_aegisqa_token != EXEC_TOKEN:
+        raise HTTPException(status_code=401, detail="Unauthorized")
     result = execute_python_in_sandbox(req.code, timeout_sec=req.timeout_sec)
     return JSONResponse(result)
+
+
+class FixVerifyRequest(BaseModel):
+    pass  # no input; uses pre-written test and shipped sources
+
+
+@app.post("/api/audit/fix")
+def audit_fix():
+    """Run the XSS test against vulnerable and fixed source. Verdict: fix_verified."""
+    from pathlib import Path
+    from patched_runner import run_test_against
+
+    demo_dir = Path(__file__).parent / "demo_target"
+    test_code = (demo_dir / "test_xss.py").read_text(encoding="utf-8")
+    vulnerable_src = (demo_dir / "vulnerable.py").read_text(encoding="utf-8")
+    fixed_src = (demo_dir / "fixed.py").read_text(encoding="utf-8")
+
+    vuln_result = run_test_against(test_code, vulnerable_src, "vulnerable")
+    fixed_result = run_test_against(test_code, fixed_src, "fixed")
+
+    vuln_failed = vuln_result["exit_code"] != 0
+    fixed_passed = fixed_result["exit_code"] == 0
+    fix_verified = vuln_failed and fixed_passed
+
+    return {
+        "vulnerable": vuln_result,
+        "fixed": fixed_result,
+        "fix_verified": fix_verified,
+        "verdict": (
+            "PASS: XSS reproduced on vulnerable, neutralized on fixed"
+            if fix_verified else
+            "FAIL: fix verification did not hold"
+        ),
+    }
 
 
 @app.post("/api/sandbox/containment-demo")

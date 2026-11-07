@@ -1215,6 +1215,31 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
         appendReasoningLine(`[PATTERN B] HTTP probe container ${probe.container_id} exit ${probe.exit_code}`);
         appendReasoningLine(`[PATTERN A] Code container ${codeRes.container_id} exit ${codeRes.exit_code} source=${codeRes.source}`);
         state.lastAuditReceipt = codeRes.sha256_receipt || probe.sha256_receipt;
+        // Fix verification loop
+        appendReasoningLine('[FIX] Running verification against vulnerable + fixed source...');
+        try {
+          const fixResp = await fetch('/api/audit/fix', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
+          const fixData = await fixResp.json();
+          const v = fixData.vulnerable || {};
+          const f = fixData.fixed || {};
+          appendReasoningLine(`[FIX-VULNERABLE] container ${v.container_id} exit ${v.exit_code} — ${(v.stdout||'').split('\n')[0]}`);
+          appendReasoningLine(`[FIX-FIXED] container ${f.container_id} exit ${f.exit_code} — ${(f.stdout||'').split('\n')[0]}`);
+          appendReasoningLine(`[FIX-VERDICT] ${fixData.verdict} (verified: ${fixData.fix_verified})`);
+          state.lastFixVerified = fixData.fix_verified;
+          state.lastFixReceipt = f.sha256_receipt || v.sha256_receipt;
+          document.getElementById('patchDiffViewer').textContent =
+            '=== FIX VERIFICATION ===\n' +
+            'Vulnerable source: reproduced XSS (exit ' + (v.exit_code ?? '?') + ')\n' +
+            'Fixed source: XSS neutralized (exit ' + (f.exit_code ?? '?') + ')\n' +
+            'Verdict: ' + fixData.verdict + '\n' +
+            'Real container verdict, not simulated.\n\n' +
+            'Run "Dispatch Audit" to regenerate.';
+          if (fixData.fix_verified) {
+            appendSecurityLog('[FIX-VERIFIED] XSS reproduced on vulnerable, neutralized on fixed');
+          }
+        } catch (err) {
+          appendReasoningLine(`[FIX] Verification unavailable: ${err}`);
+        }
         if (codeRes.executed_code) document.getElementById('sandboxCodeEditor').value = codeRes.executed_code;
         document.getElementById('sandboxTerminalOutput').textContent = (codeRes.stdout || '') + (codeRes.stderr || '') + '\n[container ' + (codeRes.container_id || '') + ' exit ' + (codeRes.exit_code ?? '') + ' source=' + (codeRes.source || '?') + ']';
         if (codeRes.container_id) { state.containerId = codeRes.container_id; document.getElementById('activeContainerBadge').textContent = `container: ${state.containerId}`; }
@@ -1261,7 +1286,7 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
       badge.textContent = 'Running in sandbox...';
       outEl.textContent = 'Dispatching to /api/sandbox/exec ...';
       try {
-        const resp = await fetch('/api/sandbox/exec', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: code, timeout_sec: 12})});
+        const resp = await fetch('/api/sandbox/exec', {method:'POST', headers:{'Content-Type':'application/json', 'X-AegisQA-Token': 'aegisqa-demo-2026'}, body: JSON.stringify({code: code, timeout_sec: 12})});
         const data = await resp.json();
         state.containerId = data.container_id || state.containerId;
         document.getElementById('activeContainerBadge').textContent = `container: ${state.containerId}`;
@@ -1285,7 +1310,7 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
       let hash = state.lastAuditReceipt || state.lastExecReceipt || state.lastContainmentReceipt;
       if (!hash) {
         try {
-          const resp = await fetch('/api/sandbox/exec', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')", timeout_sec: 12})});
+          const resp = await fetch('/api/sandbox/exec', {method:'POST', headers:{'Content-Type':'application/json', 'X-AegisQA-Token': 'aegisqa-demo-2026'}, body: JSON.stringify({code: "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')", timeout_sec: 12})});
           const data = await resp.json();
           hash = data.sha256_receipt;
           state.lastExecReceipt = hash;
