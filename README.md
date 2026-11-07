@@ -17,9 +17,14 @@ Health: http://64.177.42.65:8000/api/health
   --pids-limit 64 --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m
   --security-opt no-new-privileges:true --cap-drop ALL`
   Zero host secrets are mounted in the sandbox.
-- Pattern B: sandboxed headless HTTP probe inside an isolated container.
-  This is NOT Playwright/Chromium — it is a headless HTTP probe that
-  returns `PROBED_IN_SANDBOX` with a receipt.
+- Pattern B / containment test: sandboxed headless HTTP probe inside an
+  isolated container. This is NOT Playwright/Chromium and NOT browser
+  automation. The probe makes a real HTTP request with urllib; the
+  `--network none` policy blocks it, so it returns `UNREACHABLE` with
+  `Network is unreachable` — proof the sandbox is air-gapped from the
+  target. Pattern A (sandboxed code execution) is fully implemented.
+  Pattern B (browser automation) is out of scope for this MVP;
+  Challenge 1 permits one or both.
 - Containment Moment Lab: four rogue payloads, all contained on the live VM
   on 2026-11-07, each with a SHA-256 receipt:
   - secrets: /etc/shadow blocked, Permission denied, contained true

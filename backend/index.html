@@ -246,7 +246,7 @@
           <div class="space-y-1.5 pt-2 border-t border-slate-800">
             <div class="flex items-center justify-between text-xs">
               <span class="font-semibold text-slate-300">Live LLM Reasoning Stream</span>
-              <span id="inferenceLatencyBadge" class="text-[11px] text-cyan-400 mono">248 ms · 42 tok/s</span>
+              <span id="inferenceLatencyBadge" class="text-[11px] text-cyan-400 mono">READY</span>
             </div>
             <div id="reasoningLogBox" class="bg-slate-950/95 border border-slate-800 rounded-xl p-3 h-48 overflow-y-auto mono text-xs text-slate-300 space-y-1.5 leading-relaxed">
               <!-- Populated dynamically -->
@@ -387,7 +387,7 @@
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-xs font-bold text-white">Verified Self-Healing Patch Diff</span>
                   <span class="text-[11px] mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    All 14 Regression Tests Passing
+                    1 Verification Passed
                   </span>
                 </div>
                 <pre id="patchDiffViewer" class="bg-slate-900/95 border border-slate-800 rounded-lg p-3 text-xs mono overflow-x-auto max-h-56 leading-relaxed text-slate-200"></pre>
@@ -738,7 +738,7 @@ open("/bin/sh", "wb").write(b"0")</pre>
               <rect x="28" y="165" width="437" height="85" rx="10" fill="#0b1324" stroke="#06b6d4" stroke-width="1.5"/>
               <text x="44" y="190" fill="#ffffff" font-family="Inter" font-size="12" font-weight="bold">3. Vultr Serverless Inference (https://api.vultrinference.com/v1)</text>
               <text x="44" y="210" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">Models: deepseek-v4.1-flash-1017 / llama-3.3-70b-instruct</text>
-              <text x="44" y="228" fill="#22d3ee" font-family="JetBrains Mono" font-size="10">Plans browser probes → Writes pytest repro → Synthesizes self-healing patch</text>
+              <text x="44" y="228" fill="#22d3ee" font-family="JetBrains Mono" font-size="10">Plans probes → Writes pytest repro → Synthesizes self-healing patch</text>
 
               <!-- Node 4: Isolated Sandbox Zone -->
               <rect x="500" y="45" width="232" height="205" rx="12" fill="url(#sandboxGrad)" stroke="#f43f5e" stroke-width="2"/>
@@ -768,14 +768,12 @@ open("/bin/sh", "wb").write(b"0")</pre>
                 📋 Copy Commands
               </button>
             </div>
-            <pre id="deployCmdBlock" class="bg-black/95 border border-slate-800 rounded-xl p-3 text-xs mono text-emerald-300 overflow-x-auto leading-relaxed"># 1. SSH into your Vultr Cloud Compute VM (Ubuntu 24.04 LTS)
-export VULTR_INFERENCE_API_KEY="your_vultr_serverless_key"
-
-# 2. Unzip the AegisQA fullstack package and run the automated installer
-unzip aegisqa_vultr_fullstack.zip -d aegisqa &amp;&amp; cd aegisqa
+            <pre id="deployCmdBlock" class="bg-black/95 border border-slate-800 rounded-xl p-3 text-xs mono text-emerald-300 overflow-x-auto leading-relaxed"># 1. SSH into your Vultr Cloud Compute VM (Debian 13)
+# 2. Set the inference key in the terminal only (from Vultr dashboard)
+#    read -s VULTR_INFERENCE_API_KEY; export VULTR_INFERENCE_API_KEY
 chmod +x deploy_vultr.sh &amp;&amp; ./deploy_vultr.sh
-
-# 3. Access your public demo at http://YOUR_VULTR_VM_IP:8000</pre>
+cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 &gt; /root/uvicorn.log 2&gt;&amp;1 &amp;
+# 3. Public demo: http://64.177.42.65:8000/</pre>
           </div>
         </div>
 
@@ -919,11 +917,11 @@ chmod +x deploy_vultr.sh &amp;&amp; ./deploy_vultr.sh
       ramSeries: [42, 48, 54, 62, 68, 64, 66, 68, 65, 68],
       cpuSeries: [12, 18, 22, 28, 24, 19, 21, 20, 18, 21],
       pipelineSteps: [
-        { id: 1, title: '1. Vultr Inference Threat Plan', detail: 'Decompose target attack surface', status: 'VERIFIED' },
-        { id: 2, title: '2. Pattern B: HTTP Probe', detail: 'Headless HTTP probe', status: 'VERIFIED' },
-        { id: 3, title: '3. HTTP Probe Triage', detail: 'Verify probe response & state', status: 'VERIFIED' },
-        { id: 4, title: '4. Pattern A: Pytest Exploit Repro', detail: 'Confirm bug in isolated container', status: 'VERIFIED' },
-        { id: 5, title: '5. Self-Healing Code Patch', detail: 'Synthesize & re-test patch', status: 'VERIFIED' },
+        { id: 1, title: '1. Vultr Inference Threat Plan', detail: 'Decompose target attack surface', status: 'PENDING' },
+        { id: 2, title: '2. Containment Test: Sandbox Cannot Reach Target', detail: 'Real HTTP attempt, blocked by --network none', status: 'PENDING' },
+        { id: 3, title: '3. HTTP Probe Triage', detail: 'Verify probe response & state', status: 'PENDING' },
+        { id: 4, title: '4. Pattern A: Pytest Exploit Repro', detail: 'Confirm bug in isolated container', status: 'PENDING' },
+        { id: 5, title: '5. Self-Healing Code Patch', detail: 'Synthesize & re-test patch', status: 'PENDING' },
         { id: 6, title: '6. Human Approval & Receipt', detail: 'Await operator sign-off', status: 'RUNNING' }
       ],
       receipts: []
@@ -1399,7 +1397,7 @@ PASS: Zero secrets exposed inside ephemeral container.`,
 
     async function approveAndSignReceipt() {
       const sc = SCENARIOS[state.activeScenario] || SCENARIOS.finflow;
-      let hash = state.lastContainmentReceipt || state.lastAuditReceipt || state.lastExecReceipt;
+      let hash = state.lastAuditReceipt || state.lastExecReceipt || state.lastContainmentReceipt;
       if (!hash) {
         try {
           const resp = await fetch('/api/sandbox/exec', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: "assert 1 + 1 == 2\nprint('Verified in Vultr Sandbox')", timeout_sec: 12})});
@@ -1442,7 +1440,7 @@ PASS: Zero secrets exposed inside ephemeral container.`,
 
     function resetAuditStudio() {
       rotateContainerId();
-      state.pipelineSteps.forEach((s) => { s.status = 'VERIFIED'; });
+      state.pipelineSteps.forEach((s) => { s.status = 'PENDING'; });
       renderPipelineSteps();
       loadScenarioData(state.activeScenario);
       resetContainmentBanner();
@@ -1452,12 +1450,15 @@ PASS: Zero secrets exposed inside ephemeral container.`,
     // =========================================================================
     // CONTAINMENT MOMENT LAB & ROGUE PAYLOAD SIMULATION
     // =========================================================================
-    function triggerQuickContainmentDemo() {
+    async function triggerQuickContainmentDemo() {
       switchMainView('containment');
-      runContainmentAttack('memory');
+      if (state.containmentRunning) return;
+      await runContainmentAttack('memory');
     }
 
     async function runContainmentAttack(type) {
+      if (state.containmentRunning) return;
+      state.containmentRunning = true;
       try {
         const resp = await fetch('/api/sandbox/containment-demo', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({attack_type: type})});
         if (resp.ok) {
@@ -1477,10 +1478,12 @@ PASS: Zero secrets exposed inside ephemeral container.`,
           appendSecurityLog('[CONTAINMENT MOMENT] ' + verdict + ' in ' + data.container_id + ' SHA-256 ' + (data.sha256_receipt||'').slice(0,16) + '...');
           playTelemetrySound('alert');
           showToast('🛡️', verdict);
+          state.containmentRunning = false;
           return;
         }
-      } catch (e) { /* fall through to simulated trace below */ }
-      return runContainmentAttackSimulated(type);
+      } catch (e) { state.containmentRunning = false; appendSecurityLog('[ERROR] Sandbox unreachable — check backend health at /api/health'); showToast('⚠️', 'Sandbox unreachable — check backend health'); return; }
+      state.containmentRunning = false;
+      return;
     }
     function runContainmentAttackSimulated(type) {
       rotateContainerId();
@@ -1710,6 +1713,10 @@ PASS: Zero secrets exposed inside ephemeral container.`,
     // =========================================================================
     function renderReceiptsList() {
       const container = document.getElementById('receiptsListContainer');
+      if (state.receipts.length === 0) {
+        container.innerHTML = '<div class="glass-panel rounded-2xl p-8 text-center text-slate-400 text-sm">No receipts yet. Run an audit or a containment attack, then click Approve.</div>';
+        return;
+      }
       container.innerHTML = state.receipts.map((r) => `
         <div class="glass-panel rounded-2xl p-4 space-y-2 border border-slate-800">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1796,6 +1803,7 @@ PASS: Zero secrets exposed inside ephemeral container.`,
     }
 
     function saveVultrSettings() {
+      // Note: inference key management is server-side; the browser key field is unused in this demo build.
       state.vultrEndpoint = document.getElementById('inputVultrEndpoint').value.trim();
       state.vultrModel = document.getElementById('inputVultrModel').value;
       state.vultrApiKey = document.getElementById('inputVultrKey').value.trim();

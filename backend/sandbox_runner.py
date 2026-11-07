@@ -93,10 +93,23 @@ def execute_python_in_sandbox(code: str, timeout_sec: int = 12) -> Dict[str, Any
 
 
 def execute_http_probe_in_sandbox(target_url: str, timeout_sec: int = 20) -> Dict[str, Any]:
-    """Pattern B: headless HTTP probe inside an isolated container. NOT Playwright/Chromium."""
+    """Pattern B: headless HTTP probe inside an isolated container. NOT Playwright.
+    Attempts a real HTTP request; the --network none policy will block it,
+    which itself is a meaningful containment test: the sandbox is air-gapped
+    from the target. Status is UNREACHABLE when blocked, REACHED if it ever
+    succeeds. This is NOT browser automation."""
     probe_script = f"""
-import json, urllib.request
-# Safe header & DOM title probe inside isolated container
-print(json.dumps({{"target": {json.dumps(target_url)}, "status": "PROBED_IN_SANDBOX"}}))
+import json, urllib.request, urllib.error
+result = {{"target": {json.dumps(target_url)}, "attempted": True}}
+try:
+    with urllib.request.urlopen({json.dumps(target_url)}, timeout=3) as r:
+        result["status"] = "REACHED"
+        result["http_status"] = r.status
+        result["bytes"] = len(r.read())
+except Exception as e:
+    result["status"] = "UNREACHABLE"
+    result["error"] = f"{{type(e).__name__}}: {{e}}"
+    result["contained"] = "Network is unreachable" in str(e) or "ENETUNREACH" in str(e)
+print(json.dumps(result))
 """
     return execute_python_in_sandbox(probe_script, timeout_sec=timeout_sec)
