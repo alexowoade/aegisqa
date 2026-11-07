@@ -146,7 +146,7 @@
           2. Containment Moment Lab
         </button>
         <button id="navTabReceipts" onclick="switchMainView('receipts')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap text-slate-300 hover:text-white hover:bg-slate-800/60">
-          3. Verified Receipts (<span id="receiptCountBadge">3</span>)
+          3. Verified Receipts (<span id="receiptCountBadge">0</span>)
         </button>
         <button id="navTabArchitecture" onclick="switchMainView('architecture')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap text-slate-300 hover:text-white hover:bg-slate-800/60">
           4. Vultr Architecture &amp; Pitch Kit
@@ -927,38 +927,7 @@ chmod +x deploy_vultr.sh &amp;&amp; ./deploy_vultr.sh
         { id: 5, title: '5. Self-Healing Code Patch', detail: 'Synthesize & re-test patch', status: 'VERIFIED' },
         { id: 6, title: '6. Human Approval & Receipt', detail: 'Await operator sign-off', status: 'RUNNING' }
       ],
-      receipts: [
-        {
-          id: 'RCPT-VULTR-8841',
-          timestamp: '2026-11-04 14:22:09 UTC',
-          target: 'FinFlow Checkout Portal (/checkout)',
-          pattern: 'Pattern B (HTTP Probe) + Pattern A (Pytest)',
-          finding: 'Reflected DOM XSS in #promoBanner + Negative Promo Race Condition',
-          containment: 'Isolated in sb-vultr-9f8a (256MB Cap, 0 Secrets, --network none)',
-          sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-          status: 'VERIFIED & PATCHED'
-        },
-        {
-          id: 'RCPT-VULTR-8842',
-          timestamp: '2026-11-04 14:26:41 UTC',
-          target: 'Adversarial Containment Test (Memory + Secret Theft)',
-          pattern: 'Containment Moment Verification',
-          finding: 'Blocked 4GB allocation at 256MB cgroup boundary; os.environ returned 0 host secrets',
-          containment: 'Container terminated & purged in 0.19s; Host VM impact 0.00%',
-          sha256: '8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4',
-          status: 'CONTAINED & PURGED'
-        },
-        {
-          id: 'RCPT-VULTR-8843',
-          timestamp: '2026-11-04 14:31:15 UTC',
-          target: 'VaultAuth Enterprise SSO (/api/v1/login)',
-          pattern: 'Pattern B (HTTP Probe) + Pattern A (Pytest)',
-          finding: 'Parameterized SQL query patch verified across 18 regression assertions',
-          containment: 'Isolated in sb-vultr-4c12 (Read-Only RootFS, Zero Egress)',
-          sha256: '2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae',
-          status: 'APPROVED BY OPERATOR'
-        }
-      ]
+      receipts: []
     };
 
     const SCENARIOS = {
