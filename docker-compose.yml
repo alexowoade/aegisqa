@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  aegisqa-control-plane:
+    image: python:3.12-slim
+    container_name: aegisqa-control-plane
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - VULTR_INFERENCE_API_KEY=${VULTR_INFERENCE_API_KEY:-}
+      - VULTR_INFERENCE_MODEL=${VULTR_INFERENCE_MODEL:-deepseek-v4.1-flash-1017}
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "apt-get update && apt-get install -y docker.io &&
+             pip install --no-cache-dir -r requirements.txt &&
+             uvicorn main:app --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
