@@ -795,6 +795,14 @@ cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 80
           <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Screenshot from inside the sandbox</span>
           <img id="browserScreenshot" class="mt-2 rounded-lg border border-slate-800 max-w-full" alt="Browser screenshot">
         </div>
+        <div id="probeApprovalGate" class="hidden border-2 border-dashed border-amber-500 rounded-lg p-3 mt-2 bg-amber-950/40">
+          <div class="text-xs font-bold text-amber-300 mb-1">⏳ AWAITING OPERATOR APPROVAL</div>
+          <div class="text-xs text-amber-100 mb-2">Review the vision verdict and screenshot above. No receipt mints until you approve.</div>
+          <div class="flex gap-2">
+            <button id="btnApproveProbe" onclick="approveProbeReceipt()" class="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition shadow">✅ Approve &amp; Mint Receipt</button>
+            <button onclick="rejectProbeReceipt()" class="flex-1 py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition shadow">↩️ Reject &amp; Re-probe</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1311,7 +1319,11 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
         const resp = await fetch('/api/browser/probe', {method:'POST', headers:{'Content-Type':'application/json', 'X-AegisQA-Token': 'aegisqa-demo-2026'}, body: JSON.stringify({target_url: target})});
         const data = await resp.json();
         const p = data.probe || {};
-        out.textContent = 'Container: ' + data.container_id + '\nExit code: ' + data.exit_code + '\nDuration: ' + data.duration_ms + ' ms\nSHA-256 receipt: ' + data.sha256_receipt + '\nStatus: ' + (p.status || '?') + '\nTitle: ' + (p.title || '') + '\nURL: ' + (p.url || '') + '\nXSS reflected: ' + (p.xss_reflected ?? '?') + '\nDOM snippet: ' + (p.dom_snippet || '') + '\n' + (data.stderr || '');
+        const vv = data.vision_verification || {};
+        out.textContent = 'Container: ' + data.container_id + '\nExit code: ' + data.exit_code + '\nDuration: ' + data.duration_ms + ' ms\nSHA-256 receipt: ' + data.sha256_receipt + '\nStatus: ' + (p.status || '?') + '\nTitle: ' + (p.title || '') + '\nURL: ' + (p.url || '') + '\nXSS reflected: ' + (p.xss_reflected ?? '?') + '\nVision verdict: ' + (vv.classification || vv.error || '?') + ' — ' + (vv.verdict || '') + '\nDOM snippet: ' + (p.dom_snippet || '') + '\n' + (data.stderr || '');
+        if (vv.classification) appendSecurityLog(`[VISION] Model verdict: ${vv.classification} — ${String(vv.verdict || '').slice(0, 120)}`);
+        state.pendingProbe = data;
+        document.getElementById('probeApprovalGate').classList.remove('hidden');
         if (p.screenshot_b64) {
           document.getElementById('browserScreenshot').src = 'data:image/png;base64,' + p.screenshot_b64;
           document.getElementById('browserScreenshotWrap').classList.remove('hidden');
@@ -1320,6 +1332,21 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
       } catch (err) {
         out.textContent = 'Error calling /api/browser/probe: ' + err;
       }
+    }
+
+    function approveProbeReceipt() {
+      if (!state.pendingProbe) return;
+      state.lastAuditReceipt = state.pendingProbe.sha256_receipt;
+      state.containerId = state.pendingProbe.container_id;
+      approveAndSignReceipt();
+      document.getElementById('probeApprovalGate').classList.add('hidden');
+      state.pendingProbe = null;
+    }
+
+    function rejectProbeReceipt() {
+      document.getElementById('probeApprovalGate').classList.add('hidden');
+      state.pendingProbe = null;
+      showToast('↩️', 'Probe rejected. Run the browser probe again to re-test.');
     }
 
     async function executeCustomSandboxCode() {

@@ -371,7 +371,58 @@ def browser_probe(req: BrowserProbeRequest, x_aegisqa_token: str = Header(defaul
     if EXEC_TOKEN and x_aegisqa_token != EXEC_TOKEN:
         raise HTTPException(status_code=401, detail="Unauthorized")
     from playwright_runner import run_playwright_probe
-    return JSONResponse(run_playwright_probe(req.target_url))
+    result = run_playwright_probe(req.target_url)
+    try:
+        probe_data = result.get("probe") or {}
+        if probe_data.get("status") == "REACHED" and probe_data.get("screenshot_b64"):
+            result["vision_verification"] = _vision_verify_screenshot(probe_data["screenshot_b64"])
+        else:
+            result["vision_verification"] = {"error": "no screenshot to verify"}
+    except Exception as exc:
+        result["vision_verification"] = {"error": str(exc)}
+    return JSONResponse(result)
+
+
+def _vision_verify_screenshot(screenshot_b64: str, model: str = "deepseek-v4.1-flash-1017") -> dict:
+    """Send screenshot to vision model. Ask if unescaped XSS payload is visible."""
+    api_key = os.environ.get("VULTR_INFERENCE_API_KEY", "")
+    if not api_key:
+        return {"provider": "no-key", "error": "no api key"}
+    body = json.dumps({
+        "model": model,
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": (
+                    "This is a screenshot of a checkout page after an XSS payload was submitted. "
+                    "Look at the promo banner area. If you see a broken image icon or rendered HTML, "
+                    "the payload was NOT escaped (VULNERABLE). "
+                    "If you see literal text starting with '<img src=x', the payload WAS escaped (SAFE). "
+                    "Answer in 1 sentence: is the page VULNERABLE, SAFE, or UNKNOWN?"
+                )},
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{screenshot_b64}"}}
+            ]
+        }],
+        "max_tokens": 2000,
+    }).encode()
+    req = urllib.request.Request(VULTR_INFERENCE_URL, data=body,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            verdict = data["choices"][0]["message"].get("content", "").strip()
+            return {
+                "provider": "vultr-serverless-inference (live)",
+                "model": model,
+                "verdict": verdict,
+                "classification": (
+                    "VULNERABLE" if "vulnerable" in verdict.lower()
+                    else "SAFE" if "safe" in verdict.lower()
+                    else "UNKNOWN"
+                ),
+            }
+    except Exception as exc:
+        return {"provider": "vultr-serverless-inference", "error": str(exc)}
 
 
 class AutoPatchRequest(BaseModel):

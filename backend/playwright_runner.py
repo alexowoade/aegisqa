@@ -34,7 +34,7 @@ def run_playwright_probe(target_url: str, timeout_sec: int = 30) -> dict:
         "        page.click('#submit')",
         "        page.wait_for_timeout(800)",
         "        content = page.content()",
-        "        shot = page.screenshot()",
+        "        shot = page.screenshot(full_page=True, animations=\"disabled\")",
         "        out = {",
         "            'status': 'REACHED',",
         "            'title': page.title(),",
