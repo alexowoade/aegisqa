@@ -213,6 +213,10 @@
               <span>▶</span>
               <span id="btnRunAuditLabel">Dispatch Audit</span>
             </button>
+            <button id="btnAutoPatch" onclick="runAutopatch()" class="flex-1 bg-slate-900 hover:bg-slate-800 border border-violet-500/50 text-violet-300 font-bold text-sm py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5">
+              <span>🤖</span>
+              <span id="btnAutoPatchLabel">Auto-Patch</span>
+            </button>
             <button id="btnResetAudit" onclick="resetAuditStudio()" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-sm transition" title="Destroy container and reset state">
               ↺
             </button>
@@ -1307,6 +1311,40 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
         plannerBadge.textContent = 'FAILED';
         btnLabel.textContent = 'Dispatch Audit';
         state.auditRunning = false;
+      }
+    }
+
+    async function runAutopatch() {
+      const label = document.getElementById('btnAutoPatchLabel');
+      const viewer = document.getElementById('patchDiffViewer');
+      label.textContent = 'Patching…';
+      viewer.textContent = 'AI is reading vulnerable.py and writing a fix…';
+      appendReasoningLine('[AUTOPATCH] AI reading vulnerable.py, writing a fixed version…');
+      try {
+        const resp = await fetch('/api/audit/autopatch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
+        const data = await resp.json();
+        const t = data.ai_patch_test || {};
+        appendReasoningLine(`[AUTOPATCH] container ${t.container_id} exit ${t.exit_code} — ${(t.stdout||'').split('\\n')[0]}`);
+        appendReasoningLine(`[AUTOPATCH-VERDICT] ${data.verdict} (fix_verified: ${data.fix_verified})`);
+        viewer.textContent =
+          '=== AI AUTO-PATCH ===\n' +
+          'Verdict: ' + data.verdict + '\n' +
+          'Fix verified: ' + data.fix_verified + '\n' +
+          'Container: ' + (t.container_id || '?') + ' (exit ' + (t.exit_code ?? '?') + ', ' + (t.duration_ms ?? '?') + ' ms)\n' +
+          'SHA-256 receipt: ' + (t.sha256_receipt || '?') + '\n' +
+          'Test output: ' + (t.stdout || '').split('\n')[0] + '\n\n' +
+          '--- AI-written patch ---\n' + (data.ai_patch_source || '(no patch returned)') + '\n\n' +
+          'Approve Patch & Mint to sign this receipt.';
+        if (data.fix_verified) {
+          state.lastAuditReceipt = t.sha256_receipt;
+          state.containerId = t.container_id;
+          appendSecurityLog('[AUTOPATCH-VERIFIED] AI patch passed the sandbox test');
+        }
+        label.textContent = 'Auto-Patch';
+      } catch (err) {
+        appendReasoningLine(`[ERROR] autopatch failed: ${err}`);
+        viewer.textContent = 'Error calling /api/audit/autopatch: ' + err;
+        label.textContent = 'Auto-Patch';
       }
     }
 
