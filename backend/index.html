@@ -1394,7 +1394,7 @@ print("PASS: Zero secrets exposed inside ephemeral container.")`,
         target: sc.url,
         pattern: 'Pattern B (HTTP Probe) + Pattern A (Self-Healing Code)',
         finding: sc.visionText,
-        containment: `Isolated in ${state.containerId} (256MB Cap, 0 Secrets, --network none)`,
+        containment: `Isolated in ${state.containerId} (256MB Cap, 0 Secrets, isolated container network — no host access)`,
         sha256: hash,
         status: 'APPROVED & SIGNED'
       });
